@@ -58,14 +58,18 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Board.cs" />
+    <Compile Include="Common.cs" />
     <Compile Include="FEN.cs" />
+    <Compile Include="Game.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Pieces.cs" />
+    <Compile Include="MoveValidator.cs" />
+    <Compile Include="PGN.cs" />
+    <Compile Include="Piece.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
     </Compile>
