@@ -34,7 +34,7 @@ namespace Chess
 
         Image selectedPiece = null;
         Position selectedPieceStartPos = new Position();
-        bool pieceActive = false;
+        bool pieceSelected = false;
         bool pieceDragged = false;
 
         // in pixels
@@ -43,7 +43,7 @@ namespace Chess
 
         public Game GameManager { get; set; }
 
-        public bool Interactable = false;
+        public bool interactable = false;
 
 
         public ChessBoard(Window eventContextWindow, Canvas drawCanvas, int boardSize)
@@ -116,16 +116,16 @@ namespace Chess
 
         private void BoardMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (!Interactable) return;
+            if (!interactable) return;
 
             Point p = e.GetPosition(drawCanvas);
             Position pos = Position.FromPoint(p, TileSize);
 
             if (!pos.InBounds()) return;
 
-            if (pieceActive && selectedPieceStartPos != pos)
+            if (pieceSelected && selectedPieceStartPos != pos)
             {
-                pieceActive = false;
+                pieceSelected = false;
                 if (GameManager.TryMove(selectedPieceStartPos, pos))
                 {
                     UnselectPiece();
@@ -151,7 +151,7 @@ namespace Chess
 
         private void BoardMouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (!Interactable || selectedPiece == null) return;
+            if (!interactable || selectedPiece == null) return;
 
             Point p = e.GetPosition(drawCanvas);
             Position pos = Position.FromPoint(p, TileSize);
@@ -160,14 +160,14 @@ namespace Chess
             {
                 RevertSelectedPiecePosition();
 
-                if (pieceActive)
+                if (pieceSelected)
                 {
                     UnselectPiece();
-                    pieceActive = false;
+                    pieceSelected = false;
                 }
                 else
                 {
-                    pieceActive = true;
+                    pieceSelected = true;
                 }
             }
             else if (pieceDragged)
@@ -175,12 +175,12 @@ namespace Chess
                 if (GameManager.TryMove(selectedPieceStartPos, pos))
                 {
                     UnselectPiece();
-                    pieceActive = false;
+                    pieceSelected = false;
                 }
                 else
                 {
                     RevertSelectedPiecePosition();
-                    pieceActive = true;
+                    pieceSelected = true;
                 }
             }
 
@@ -189,13 +189,13 @@ namespace Chess
 
         private void BoardMouseMove(object sender, MouseEventArgs e)
         {
-            if (!Interactable || !pieceDragged || selectedPiece == null) return;
+            if (!interactable || !pieceDragged || selectedPiece == null) return;
 
             if (e.LeftButton == MouseButtonState.Released)
             {
                 RevertSelectedPiecePosition();
                 UnselectPiece();
-                pieceActive = false;
+                pieceSelected = false;
                 pieceDragged = false;
 
                 return;
@@ -227,6 +227,14 @@ namespace Chess
             SetObjectPosition(ref pieceImages[to.Y, to.X], to.Y, to.X);
 
             return true;
+        }
+
+        public void RemovePiece(Position pos)
+        {
+            if (pieceImages[pos.Y, pos.X] == null) return;
+
+            drawCanvas.Children.Remove(pieceImages[pos.Y, pos.X]);
+            pieceImages[pos.Y, pos.X] = null;
         }
 
         public void SetBoardTexture(string boardTexturePath)

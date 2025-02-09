@@ -4,8 +4,10 @@ namespace Chess
 {
     public static class MoveValidator
     {
-        public static bool CheckPawnMove(ref Piece[,] pieces, bool isWhite, Position from, Position to)
+        public static bool CheckPawnMove(ref Piece[,] pieces, Position enPassantTarget, bool isWhite, Position from, Position to, out bool enPassantCapture)
         {
+            enPassantCapture = false;
+
             if (from.X == to.X && pieces[to.Y, to.X] == null)
             {
                 if (from.Y == (isWhite ? 6 : 1)
@@ -19,10 +21,18 @@ namespace Chess
                     return true;
                 }
             }
-            else if (Math.Abs(from.X - to.X) == 1 && from.Y - to.Y == (isWhite ? 1 : -1) && pieces[to.Y, to.X] != null)
+            else if (Math.Abs(from.X - to.X) == 1 && from.Y - to.Y == (isWhite ? 1 : -1) && (pieces[to.Y, to.X] != null || to == enPassantTarget))
             {
-                if (pieces[to.Y, to.X].IsWhite != isWhite)
+                if (pieces[to.Y, to.X] == null)
+                {
+                    // en passant capture
+                    enPassantCapture = true;
                     return true;
+                }
+                else if (pieces[to.Y, to.X].IsWhite != isWhite)
+                {
+                    return true;
+                }
             }
 
             return false;

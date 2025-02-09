@@ -3,21 +3,55 @@ using System.Linq;
 
 namespace Chess
 {
+    [Flags]
+    public enum CastlingAbility
+    {
+        K = 0b1000,
+        Q = 0b0100,
+        k = 0b0010,
+        q = 0b0001
+    }
+
+    public struct CastlingBitField
+    {
+        public int Value { get; private set; }
+
+        public CastlingBitField(int Value)
+        {
+            this.Value = Value;
+        }
+
+        public bool HasFlag(CastlingAbility flag)
+        {
+            return (Value & (int)flag) != 0;
+        }
+
+        public void SetFlag(CastlingAbility flag)
+        {
+            Value |= (int)flag;
+        }
+
+        public void UnsetFlag(CastlingAbility flag)
+        {
+            Value &= ~(int)flag;
+        }
+    }
+
     public static class FEN
     {
-        [Flags]
-        public enum CastlingAbility
+        public struct Context
         {
-            K = 0b1000,
-            Q = 0b0100,
-            k = 0b0010,
-            q = 0b0001
+            public bool IsWhiteToMove { get; set; }
+            public CastlingBitField CastlingRights { get; set; }
+            public Position EnPassantTarget { get; set; }
+            public int HalfMoveClock { get; set; }
+            public int FullMoveCounter { get; set; }
         }
 
         public struct Result
         {
             public Piece[,] board;
-            public GameInfo info;
+            public Context context;
         }
 
         private static void ParseRowPlacement(Piece[,] table, int rowNumber, string placementStr)
@@ -65,12 +99,13 @@ namespace Chess
                     ParseRowPlacement(result.board, j, placement[j]);
                 }
 
-                result.info = new GameInfo
+                result.context = new Context
                 {
                     IsWhiteToMove = records[1] == "w",
-                    CastlingRights = records[2] == "-" ? 0 : records[2].Aggregate(0, (acc, c) => acc | (int)Enum.Parse(typeof(CastlingAbility), c.ToString())),
-                    EnPassantTarget = records[3] == "-" ? new Position(0, 0)
-                    : new Position(int.Parse(records[3][0].ToString()) - 'a', int.Parse(records[3][1].ToString())),
+                    CastlingRights = new CastlingBitField(
+                        records[2] == "-" ? 0 : records[2].Aggregate(0, (acc, c) => acc | (int)Enum.Parse(typeof(CastlingAbility), c.ToString()))
+                    ),
+                    EnPassantTarget = records[3] == "-" ? new Position(-1, -1) : new Position(records[3][0], int.Parse(records[3][1].ToString())),
                     HalfMoveClock = int.Parse(records[4]),
                     FullMoveCounter = int.Parse(records[5])
                 };
