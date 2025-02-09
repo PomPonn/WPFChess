@@ -258,10 +258,9 @@ namespace Chess
                     }
                     else
                     {
-                        var test = board[i, j].ToString();
                         pieceImages[i, j] = new Image
                         {
-                            Source = pieceBitmaps[test],
+                            Source = pieceBitmaps[board[i, j].ToString()],
                             Width = TileSize,
                             Height = TileSize
                         };

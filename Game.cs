@@ -93,7 +93,6 @@ namespace Chess
                 throw new InvalidOperationException("Pieces not loaded.");
 
             Board.interactable = true;
-
         }
 
         public void LoadFENPosition(string fen)
