@@ -58,7 +58,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Board.cs" />
-    <Compile Include="Common.cs" />
+    <Compile Include="Position.cs" />
     <Compile Include="FEN.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="MainWindow.xaml.cs">

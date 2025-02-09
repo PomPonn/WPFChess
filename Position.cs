@@ -24,7 +24,7 @@ namespace Chess
         {
             return X >= 0 && X < 8 && Y >= 0 && Y < 8;
         }
-        
+
         public static Position FromPoint(Point point, int tileSize)
         {
             return new Position((int)Math.Floor(point.X / tileSize), (int)Math.Floor(point.Y / tileSize));
@@ -58,14 +58,5 @@ namespace Chess
         {
             return $"{(char)(X + 'a')}{8 - Y}";
         }
-    }
-
-    [Flags]
-    public enum CastlingAbility
-    {
-        K = 0b1000,
-        Q = 0b0100,
-        k = 0b0010,
-        q = 0b0001
     }
 }
