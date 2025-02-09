@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 
 namespace Chess
 {
@@ -29,9 +30,12 @@ namespace Chess
         readonly Canvas drawCanvas;
         readonly Image boardImage;
         readonly Image[,] pieceImages;
+        readonly Rectangle[] squareTints;
 
         Image selectedPiece = null;
         Position selectedPieceStartPos = new Position();
+        bool pieceClicked = false;
+        bool pieceDragged = false;
 
         // in pixels
         int BoardSize { get; set; }
@@ -39,64 +43,30 @@ namespace Chess
 
         public Game GameManager { get; set; }
 
-        private void BoardMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            Point p = e.GetPosition(sender as IInputElement);
 
-            selectedPieceStartPos.X = (int)(p.X / TileSize);
-            selectedPieceStartPos.Y = (int)(p.Y / TileSize);
-
-            selectedPiece = pieceImages[selectedPieceStartPos.Y, selectedPieceStartPos.X];
-
-            if (selectedPiece == null) return;
-
-            Canvas.SetZIndex(selectedPiece, 10);
-        }
-
-        private void BoardMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            if (selectedPiece == null) return;
-
-            Point p = e.GetPosition(sender as IInputElement);
-
-            Position newPos = new Position((int)(p.X / TileSize), (int)(p.Y / TileSize));
-
-            if (!GameManager.TryMove(selectedPieceStartPos, newPos))
-            {
-                Canvas.SetTop(selectedPiece, selectedPieceStartPos.Y * TileSize);
-                Canvas.SetLeft(selectedPiece, selectedPieceStartPos.X * TileSize);
-            }
-
-            Canvas.SetZIndex(selectedPiece, 0);
-            selectedPiece = null;
-        }
-
-        private void BoardMouseMove(object sender, MouseEventArgs e)
-        {
-            if (selectedPiece == null) return;
-
-            if (e.LeftButton == MouseButtonState.Released)
-            {
-                BoardMouseUp(sender, null);
-                return;
-            }
-
-            Point t = e.GetPosition(sender as IInputElement);
-
-            Canvas.SetTop(selectedPiece, t.Y - selectedPiece.ActualHeight / 2);
-            Canvas.SetLeft(selectedPiece, t.X - selectedPiece.ActualWidth / 2);
-        }
-
-        public ChessBoard(Canvas drawCanvas, int boardSize)
+        public ChessBoard(Window eventContextWindow, Canvas drawCanvas, int boardSize)
         {
             BoardSize = boardSize;
             this.drawCanvas = drawCanvas;
 
-            drawCanvas.MouseDown += BoardMouseDown;
-            drawCanvas.MouseMove += BoardMouseMove;
-            drawCanvas.MouseUp += BoardMouseUp;
+            eventContextWindow.MouseLeftButtonDown += BoardMouseDown;
+            eventContextWindow.MouseMove += BoardMouseMove;
+            eventContextWindow.MouseLeftButtonUp += BoardMouseUp;
 
             pieceImages = new Image[8, 8];
+
+            squareTints = new Rectangle[3];
+            for (int i = 0; i < squareTints.Length; i++)
+            {
+                squareTints[i] = new Rectangle
+                {
+                    Fill = System.Windows.Media.Brushes.Orange,
+                    Opacity = 0.25,
+                    Width = TileSize,
+                    Height = TileSize
+                };
+                Canvas.SetZIndex(squareTints[i], -2);
+            }
 
             boardImage = new Image
             {
@@ -104,8 +74,136 @@ namespace Chess
                 Width = BoardSize,
                 Height = BoardSize
             };
+            Canvas.SetZIndex(boardImage, -10);
+        }
 
-            Canvas.SetZIndex(boardImage, -1);
+        private void RevertSelectedPiecePosition()
+        {
+            if (selectedPiece == null) return;
+
+            Canvas.SetTop(selectedPiece, selectedPieceStartPos.Y * TileSize);
+            Canvas.SetLeft(selectedPiece, selectedPieceStartPos.X * TileSize);
+        }
+
+        private bool CheckBoardBounds(Position pos)
+        {
+            return pos.X >= 0 && pos.X < 8 && pos.Y >= 0 && pos.Y < 8;
+        }
+
+        private void SelectPiece(Position pos)
+        {
+            if (selectedPiece == pieceImages[pos.Y, pos.X])
+                return;
+
+            selectedPiece = pieceImages[pos.Y, pos.X];
+
+            if (selectedPiece == null) return;
+
+            selectedPieceStartPos = pos;
+            Canvas.SetZIndex(selectedPiece, 10);
+
+            Canvas.SetTop(squareTints[0], pos.Y * TileSize);
+            Canvas.SetLeft(squareTints[0], pos.X * TileSize);
+            drawCanvas.Children.Add(squareTints[0]);
+        }
+
+        private void UnselectPiece()
+        {
+            if (selectedPiece == null) return;
+
+            Canvas.SetZIndex(selectedPiece, 0);
+            selectedPiece = null;
+
+            drawCanvas.Children.Remove(squareTints[0]);
+        }
+
+        private void BoardMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            Point p = e.GetPosition(drawCanvas);
+            Position pos = Position.FromPoint(p, TileSize);
+
+            if (!CheckBoardBounds(pos)) return;
+
+            if (pieceClicked && selectedPieceStartPos != pos)
+            {
+                if (GameManager.TryMove(selectedPieceStartPos, pos))
+                {
+                    UnselectPiece();
+                    pieceClicked = false;
+                }
+                else
+                {
+                    RevertSelectedPiecePosition();
+                    pieceClicked = false;
+                }
+
+                pieceDragged = false;
+            }
+            else
+            {
+                SelectPiece(pos);
+                pieceDragged = true;
+            }
+        }
+
+        private void BoardMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (selectedPiece == null) return;
+
+            Point p = e.GetPosition(drawCanvas);
+            Position pos = Position.FromPoint(p, TileSize);
+
+            if (pos == selectedPieceStartPos)
+            {
+                RevertSelectedPiecePosition();
+
+                if (pieceClicked)
+                {
+                    UnselectPiece();
+                    pieceClicked = false;
+                }
+                else
+                {
+                    pieceClicked = true;
+                }
+            }
+            else
+            {
+                if (!GameManager.TryMove(selectedPieceStartPos, pos))
+                {
+                    RevertSelectedPiecePosition();
+                }
+                UnselectPiece();
+                pieceClicked = false;
+
+                if (!pieceDragged && CheckBoardBounds(pos) && pieceImages[pos.Y, pos.X] != null)
+                {
+                    SelectPiece(pos);
+                    pieceClicked = true;
+                }
+            }
+
+            pieceDragged = false;
+        }
+
+        private void BoardMouseMove(object sender, MouseEventArgs e)
+        {
+            if (!pieceDragged || selectedPiece == null) return;
+
+            if (e.LeftButton == MouseButtonState.Released)
+            {
+                RevertSelectedPiecePosition();
+                UnselectPiece();
+                pieceClicked = false;
+                pieceDragged = false;
+
+                return;
+            }
+
+            Point p = e.GetPosition(drawCanvas);
+
+            Canvas.SetLeft(selectedPiece, p.X - TileSize / 2);
+            Canvas.SetTop(selectedPiece, p.Y - TileSize / 2);
         }
 
         private void SetObjectPosition(ref Image obj, int row, int column)

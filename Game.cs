@@ -15,6 +15,11 @@
         public GameInfo GameState { get; set; }
         public Piece[,] Pieces;
 
+        private bool CheckBoundaries(Position pos)
+        {
+            return pos.X >= 0 && pos.X < 8 && pos.Y >= 0 && pos.Y < 8;
+        }
+
         public Game(ChessBoard board)
         {
             Board = board;
@@ -34,52 +39,35 @@
         public bool TryMove(Position start, Position end)
         {
             Piece piece = Pieces[start.Y, start.X];
+            
+            if (!CheckBoundaries(start) || !CheckBoundaries(end) || piece == null)
+                return false;
 
             switch (piece.Type)
             {
                 case PieceType.Pawn:
-                    if (MoveValidator.CheckPawnMove(ref Pieces, piece, start, end)) goto __move;
-                    //if (start.X == end.X && Pieces[end.Y, end.X] == null)
-                    //{
-                    //    if (start.Y == 6 && start.Y - end.Y == 2 && Pieces[end.Y + 1, end.X] == null)
-                    //    {
-                    //        goto __move;
-                    //    }
-                    //    else if (start.Y - end.Y == 1)
-                    //    {
-                    //        goto __move;
-                    //    }
-                    //}
-                    //else if (Math.Abs(start.X - end.X) == 1 && start.Y - end.Y == 1 && Pieces[end.Y, end.X] != null)
-                    //{
-                    //    goto __move;
-                    //}
-
-                    //if (start.X == end.X)
-                    //{
-                    //    if (start.Y == 6 && end.Y - start.Y == 2)
-                    //    {
-                    //        goto __move;
-                    //    }
-                    //    else if (end.Y - start.Y == 1)
-                    //    {
-                    //        goto __move;
-                    //    }
-                    //}
-                    //else if (Math.Abs(start.X - end.X) == 1 && end.Y - start.Y == 1)
-                    //{
-                    //    goto __move;
-                    //}
+                    if (MoveValidator.CheckPawnMove(ref Pieces, piece.IsWhite, start, end)) 
+                        goto __move;
                     break;
                 case PieceType.Knight:
+                    if (MoveValidator.CheckKnightMove(ref Pieces, start, end))
+                        goto __move;
                     break;
                 case PieceType.Bishop:
+                    if (MoveValidator.CheckBishopMove(ref Pieces, start, end))
+                        goto __move;
                     break;
                 case PieceType.Rook:
+                    if (MoveValidator.CheckRookMove(ref Pieces, start, end))
+                        goto __move;
                     break;
                 case PieceType.Queen:
+                    if (MoveValidator.CheckQueenMove(ref Pieces, start, end))
+                        goto __move;
                     break;
                 case PieceType.King:
+                    if (MoveValidator.CheckKingMove(ref Pieces, start, end))
+                        goto __move;
                     break;
             }
 

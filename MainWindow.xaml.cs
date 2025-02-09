@@ -1,5 +1,4 @@
 ﻿using System.Windows;
-using System.Windows.Input;
 
 namespace Chess
 {
@@ -11,7 +10,7 @@ namespace Chess
         {
             InitializeComponent();
 
-            ChessBoard board = new ChessBoard(cnv_boardWrapper, 720);
+            ChessBoard board = new ChessBoard(this, cnv_boardWrapper, 720);
 
             Game game = new Game(board);
 

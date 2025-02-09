@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows;
 
 namespace Chess
 {
@@ -15,8 +16,37 @@ namespace Chess
 
         public Position(char file, int rank)
         {
-            X = file - 'a';
+            X = file - 'h';
             Y = 8 - rank;
+        }
+
+        public static Position FromPoint(Point point, int tileSize)
+        {
+            return new Position((int)Math.Floor(point.X / tileSize), (int)Math.Floor(point.Y / tileSize));
+        }
+
+        public static bool operator ==(Position a, Position b)
+        {
+            return a.X == b.X && a.Y == b.Y;
+        }
+
+        public static bool operator !=(Position a, Position b)
+        {
+            return a.X != b.X || a.Y != b.Y;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (!(obj is Position))
+                return false;
+
+            Position other = (Position)obj;
+            return this == other;
+        }
+
+        public override int GetHashCode()
+        {
+            return X.GetHashCode() ^ Y.GetHashCode();
         }
 
         public override string ToString()
