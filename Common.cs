@@ -20,6 +20,11 @@ namespace Chess
             Y = 8 - rank;
         }
 
+        public bool InBounds()
+        {
+            return X >= 0 && X < 8 && Y >= 0 && Y < 8;
+        }
+        
         public static Position FromPoint(Point point, int tileSize)
         {
             return new Position((int)Math.Floor(point.X / tileSize), (int)Math.Floor(point.Y / tileSize));

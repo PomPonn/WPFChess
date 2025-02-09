@@ -15,11 +15,6 @@
         public GameInfo GameState { get; set; }
         public Piece[,] Pieces;
 
-        private bool CheckBoundaries(Position pos)
-        {
-            return pos.X >= 0 && pos.X < 8 && pos.Y >= 0 && pos.Y < 8;
-        }
-
         public Game(ChessBoard board)
         {
             Board = board;
@@ -39,14 +34,14 @@
         public bool TryMove(Position start, Position end)
         {
             Piece piece = Pieces[start.Y, start.X];
-            
-            if (!CheckBoundaries(start) || !CheckBoundaries(end) || piece == null)
+
+            if (!start.InBounds() || !end.InBounds() || piece == null)
                 return false;
 
             switch (piece.Type)
             {
                 case PieceType.Pawn:
-                    if (MoveValidator.CheckPawnMove(ref Pieces, piece.IsWhite, start, end)) 
+                    if (MoveValidator.CheckPawnMove(ref Pieces, piece.IsWhite, start, end))
                         goto __move;
                     break;
                 case PieceType.Knight:

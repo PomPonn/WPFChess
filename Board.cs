@@ -34,7 +34,7 @@ namespace Chess
 
         Image selectedPiece = null;
         Position selectedPieceStartPos = new Position();
-        bool pieceClicked = false;
+        bool pieceActive = false;
         bool pieceDragged = false;
 
         // in pixels
@@ -42,6 +42,8 @@ namespace Chess
         int TileSize => BoardSize / 8;
 
         public Game GameManager { get; set; }
+
+        public bool Interactable = false;
 
 
         public ChessBoard(Window eventContextWindow, Canvas drawCanvas, int boardSize)
@@ -85,11 +87,6 @@ namespace Chess
             Canvas.SetLeft(selectedPiece, selectedPieceStartPos.X * TileSize);
         }
 
-        private bool CheckBoardBounds(Position pos)
-        {
-            return pos.X >= 0 && pos.X < 8 && pos.Y >= 0 && pos.Y < 8;
-        }
-
         private void SelectPiece(Position pos)
         {
             if (selectedPiece == pieceImages[pos.Y, pos.X])
@@ -119,25 +116,31 @@ namespace Chess
 
         private void BoardMouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (!Interactable) return;
+
             Point p = e.GetPosition(drawCanvas);
             Position pos = Position.FromPoint(p, TileSize);
 
-            if (!CheckBoardBounds(pos)) return;
+            if (!pos.InBounds()) return;
 
-            if (pieceClicked && selectedPieceStartPos != pos)
+            if (pieceActive && selectedPieceStartPos != pos)
             {
+                pieceActive = false;
                 if (GameManager.TryMove(selectedPieceStartPos, pos))
                 {
                     UnselectPiece();
-                    pieceClicked = false;
                 }
                 else
                 {
                     RevertSelectedPiecePosition();
-                    pieceClicked = false;
-                }
+                    UnselectPiece();
 
-                pieceDragged = false;
+                    if (pieceImages[pos.Y, pos.X] != null)
+                    {
+                        SelectPiece(pos);
+                        pieceDragged = true;
+                    }
+                }
             }
             else
             {
@@ -148,7 +151,7 @@ namespace Chess
 
         private void BoardMouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (selectedPiece == null) return;
+            if (!Interactable || selectedPiece == null) return;
 
             Point p = e.GetPosition(drawCanvas);
             Position pos = Position.FromPoint(p, TileSize);
@@ -157,29 +160,27 @@ namespace Chess
             {
                 RevertSelectedPiecePosition();
 
-                if (pieceClicked)
+                if (pieceActive)
                 {
                     UnselectPiece();
-                    pieceClicked = false;
+                    pieceActive = false;
                 }
                 else
                 {
-                    pieceClicked = true;
+                    pieceActive = true;
                 }
             }
-            else
+            else if (pieceDragged)
             {
-                if (!GameManager.TryMove(selectedPieceStartPos, pos))
+                if (GameManager.TryMove(selectedPieceStartPos, pos))
+                {
+                    UnselectPiece();
+                    pieceActive = false;
+                }
+                else
                 {
                     RevertSelectedPiecePosition();
-                }
-                UnselectPiece();
-                pieceClicked = false;
-
-                if (!pieceDragged && CheckBoardBounds(pos) && pieceImages[pos.Y, pos.X] != null)
-                {
-                    SelectPiece(pos);
-                    pieceClicked = true;
+                    pieceActive = true;
                 }
             }
 
@@ -188,13 +189,13 @@ namespace Chess
 
         private void BoardMouseMove(object sender, MouseEventArgs e)
         {
-            if (!pieceDragged || selectedPiece == null) return;
+            if (!Interactable || !pieceDragged || selectedPiece == null) return;
 
             if (e.LeftButton == MouseButtonState.Released)
             {
                 RevertSelectedPiecePosition();
                 UnselectPiece();
-                pieceClicked = false;
+                pieceActive = false;
                 pieceDragged = false;
 
                 return;

@@ -14,7 +14,8 @@ namespace Chess
 
             Game game = new Game(board);
 
-            game.LoadFENPosition("r3kb1r/pp1qpp1p/3p1np1/4n3/Q7/2N5/PPP2PPP/R1B1K1NR w KQkq - 0 10");
+            // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+            game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
             //board.MovePiece(new Position('b', 2), new Position('b', 4));
         }
