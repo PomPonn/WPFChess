@@ -91,6 +91,7 @@
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
     </None>
+    <None Include="TODO.md" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="images\pieces\b_b.png">
