@@ -4,8 +4,32 @@ namespace Chess
 {
     public static class MoveValidator
     {
-        public static bool CheckPawnMove(ref Piece[,] pieces, Position enPassantTarget, bool isWhite, Position from, Position to, out bool enPassantCapture)
+        public static bool CheckMove(ref Piece[,] pieces, Position from, Position to, Position enPassantTarget, out bool enPassantCapture)
         {
+            enPassantCapture = false;
+
+            switch (pieces[from.Y, from.X].Type)
+            {
+                case PieceType.Pawn:
+                    return CheckPawnMove(ref pieces, from, to, enPassantTarget, out enPassantCapture);
+                case PieceType.Knight:
+                    return CheckKnightMove(ref pieces, from, to);
+                case PieceType.Bishop:
+                    return CheckBishopMove(ref pieces, from, to);
+                case PieceType.Rook:
+                    return CheckRookMove(ref pieces, from, to);
+                case PieceType.Queen:
+                    return CheckQueenMove(ref pieces, from, to);
+                case PieceType.King:
+                    return CheckKingMove(ref pieces, from, to);
+                default:
+                    return false;
+            }
+        }
+
+        public static bool CheckPawnMove(ref Piece[,] pieces, Position from, Position to, Position enPassantTarget, out bool enPassantCapture)
+        {
+            bool isWhite = pieces[from.Y, from.X].IsWhite;
             enPassantCapture = false;
 
             if (from.X == to.X && pieces[to.Y, to.X] == null)

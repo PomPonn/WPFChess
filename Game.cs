@@ -1,10 +1,18 @@
 ﻿using System;
+using System.Windows;
 
 namespace Chess
 {
     public struct GameState
     {
         public FEN.Context FENContext;
+    }
+
+    public enum GameResult
+    {
+        WhiteWin,
+        BlackWin,
+        Draw
     }
 
     public class Game
@@ -65,6 +73,109 @@ namespace Chess
                 gameState.FENContext.HalfMoveClock++;
         }
 
+        private Position FindKing(bool isWhite)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (Pieces[i, j] != null && Pieces[i, j].Type == PieceType.King && Pieces[i, j].IsWhite == isWhite)
+                    {
+                        return new Position(j, i);
+                    }
+                }
+            }
+
+            return new Position(-1, -1);
+        }
+
+        private bool KingChecked(Position kingPos)
+        {
+            if (!kingPos.InBounds()) return false;
+
+            bool isWhite = Pieces[kingPos.Y, kingPos.X].IsWhite;
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (Pieces[i, j] != null && Pieces[i, j].IsWhite != isWhite)
+                    {
+                        if (MoveValidator.CheckMove(ref Pieces, new Position(j, i), kingPos, gameState.FENContext.EnPassantTarget, out _))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private bool KingChecked(bool isWhite)
+        {
+            Position kingPos = FindKing(isWhite);
+
+            return KingChecked(kingPos);
+        }
+
+        private bool KingMated(bool isWhite)
+        {
+            Position kingPos = FindKing(isWhite);
+
+            if (!KingChecked(kingPos))
+                return false;
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (Pieces[i, j] == null || Pieces[i, j].IsWhite != isWhite) continue;
+
+                    Position startPos = new Position(j, i);
+
+                    for (int k = 0; k < 8; k++)
+                    {
+                        for (int l = 0; l < 8; l++)
+                        {
+                            Position testPos = new Position(l, k);
+
+                            if (MoveValidator.CheckMove(ref Pieces, startPos, testPos, gameState.FENContext.EnPassantTarget, out _))
+                            {
+                                Piece piece = Pieces[k, l];
+
+                                Pieces[k, l] = Pieces[i, j];
+                                Pieces[i, j] = null;
+
+                                bool isChecked = startPos == kingPos ? KingChecked(testPos) : KingChecked(kingPos);
+
+                                Pieces[i, j] = Pieces[k, l];
+                                Pieces[k, l] = piece;
+
+                                if (!isChecked) return false;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        private void GameOver(GameResult isWhite)
+        {
+            Board.interactable = false;
+
+            string message = string.Empty;
+
+            if (isWhite == GameResult.Draw)
+                message = "Draw!";
+            else
+                message = "Checkmate! " + (isWhite == GameResult.WhiteWin ? "White" : "Black") + " wins!";
+
+            MessageBox.Show(message, "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
         public Game(ChessBoard board, Piece[,] pieces = null)
         {
             Board = board;
@@ -109,47 +220,31 @@ namespace Chess
         public bool TryMove(Position start, Position end)
         {
             Piece piece = Pieces[start.Y, start.X];
-            bool enPassantCapture = false;
 
             if (piece == null || gameState.FENContext.IsWhiteToMove != piece.IsWhite || !start.InBounds() || !end.InBounds())
                 return false;
 
-            switch (piece.Type)
-            {
-                case PieceType.Pawn:
-                    if (MoveValidator.CheckPawnMove(ref Pieces, gameState.FENContext.EnPassantTarget, 
-                        piece.IsWhite, start, end, out enPassantCapture))
-                        goto __move;
-                    break;
-                case PieceType.Knight:
-                    if (MoveValidator.CheckKnightMove(ref Pieces, start, end))
-                        goto __move;
-                    break;
-                case PieceType.Bishop:
-                    if (MoveValidator.CheckBishopMove(ref Pieces, start, end))
-                        goto __move;
-                    break;
-                case PieceType.Rook:
-                    if (MoveValidator.CheckRookMove(ref Pieces, start, end))
-                        goto __move;
-                    break;
-                case PieceType.Queen:
-                    if (MoveValidator.CheckQueenMove(ref Pieces, start, end))
-                        goto __move;
-                    break;
-                case PieceType.King:
-                    if (MoveValidator.CheckKingMove(ref Pieces, start, end))
-                        goto __move;
-                    break;
-            }
+            if (!MoveValidator.CheckMove(ref Pieces, start, end, gameState.FENContext.EnPassantTarget, out bool enPassantCapture))
+                return false;
 
-            return false;
+            Pieces[end.Y, end.X] = piece;
+            Pieces[start.Y, start.X] = null;
 
-        __move:
+            // check if allied king is checked after the move
+            bool isKingChecked = KingChecked(piece.IsWhite);
+
+            // revert move, to update game state correctly
+            Pieces[end.Y, end.X] = null;
+            Pieces[start.Y, start.X] = piece;
+
+            if (isKingChecked)
+                return false;
 
             if (!Board.MovePiece(start, end))
             {
-                return false;
+                // board and gameController are desynced
+                // sync it back?
+                throw new Exception("MovePiece failed.");
             }
 
             UpdateGameState(start, end);
@@ -164,6 +259,9 @@ namespace Chess
 
             Pieces[end.Y, end.X] = piece;
             Pieces[start.Y, start.X] = null;
+
+            if (KingChecked(!piece.IsWhite) && KingMated(!piece.IsWhite))
+                GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
 
             return true;
         }
