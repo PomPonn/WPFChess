@@ -16,9 +16,9 @@ namespace Chess
     {
         public int Value { get; private set; }
 
-        public CastlingBitField(int Value)
+        public CastlingBitField(int value)
         {
-            this.Value = Value;
+            Value = value;
         }
 
         public bool HasFlag(CastlingAbility flag)
@@ -42,7 +42,7 @@ namespace Chess
         public struct Context
         {
             public bool IsWhiteToMove { get; set; }
-            public CastlingBitField CastlingRights { get; set; }
+            public CastlingBitField castlingRights;
             public Position EnPassantTarget { get; set; }
             public int HalfMoveClock { get; set; }
             public int FullMoveCounter { get; set; }
@@ -102,7 +102,7 @@ namespace Chess
                 result.context = new Context
                 {
                     IsWhiteToMove = records[1] == "w",
-                    CastlingRights = new CastlingBitField(
+                    castlingRights = new CastlingBitField(
                         records[2] == "-" ? 0 : records[2].Aggregate(0, (acc, c) => acc | (int)Enum.Parse(typeof(CastlingAbility), c.ToString()))
                     ),
                     EnPassantTarget = records[3] == "-" ? new Position(-1, -1) : new Position(records[3][0], int.Parse(records[3][1].ToString())),

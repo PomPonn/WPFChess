@@ -79,6 +79,12 @@ namespace Chess
             Canvas.SetZIndex(boardImage, -10);
         }
 
+        private void SetObjectPosition(ref Image obj, int row, int column)
+        {
+            Canvas.SetTop(obj, row * TileSize);
+            Canvas.SetLeft(obj, column * TileSize);
+        }
+
         private void RevertSelectedPiecePosition()
         {
             if (selectedPiece == null) return;
@@ -207,12 +213,6 @@ namespace Chess
             Canvas.SetTop(selectedPiece, p.Y - TileSize / 2);
         }
 
-        private void SetObjectPosition(ref Image obj, int row, int column)
-        {
-            Canvas.SetTop(obj, row * TileSize);
-            Canvas.SetLeft(obj, column * TileSize);
-        }
-
         public bool MovePiece(Position from, Position to)
         {
             if (pieceImages[from.Y, from.X] == null)
@@ -237,12 +237,7 @@ namespace Chess
             pieceImages[pos.Y, pos.X] = null;
         }
 
-        public void SetBoardTexture(string boardTexturePath)
-        {
-            boardImage.Source = new BitmapImage(new Uri(boardTexturePath, UriKind.Relative));
-        }
-
-        public void SetPosition(ref Piece[,] board)
+        public void SetPosition(Piece[,] board)
         {
             drawCanvas.Children.Clear();
 
