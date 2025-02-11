@@ -10,7 +10,10 @@ namespace Chess
         {
             InitializeComponent();
 
-            ChessBoard board = new ChessBoard(this, cnv_boardWrapper, 640);
+            ChessBoard board = new ChessBoard(this, cnv_boardWrapper, 640)
+            {
+                Rotation = BoardRotation.WhiteBottom
+            };
 
             Game game = new Game(board);
 

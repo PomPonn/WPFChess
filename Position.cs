@@ -25,6 +25,33 @@ namespace Chess
             return X >= 0 && X < 8 && Y >= 0 && Y < 8;
         }
 
+        public void ApplyRotation(BoardRotation rotation)
+        {
+            if (rotation == BoardRotation.WhiteBottom) return;
+
+            X = 7 - X;
+            Y = 7 - Y;
+        }
+
+        public static int ApplyRotation(int value, BoardRotation rotation)
+        {
+            return rotation == BoardRotation.WhiteBottom ? value : 7 - value;
+        }
+
+        public static Position ApplyRotation(Position pos, BoardRotation rotation)
+        {
+            if (rotation == BoardRotation.WhiteBottom) return pos;
+
+            return new Position(7 - pos.X, 7 - pos.Y);
+        }
+
+        public static Position ApplyRotation(int x, int y, BoardRotation rotation)
+        {
+            if (rotation == BoardRotation.WhiteBottom) return new Position(x, y);
+
+            return new Position(7 - x, 7 - y);
+        }
+
         public static Position FromPoint(Point point, int tileSize)
         {
             return new Position((int)Math.Floor(point.X / tileSize), (int)Math.Floor(point.Y / tileSize));

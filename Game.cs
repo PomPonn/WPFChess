@@ -27,6 +27,43 @@ namespace Chess
         public ChessBoard Board { get; set; }
 
 
+        private bool AlliedKingCheck(Position start, Position end, Piece piece)
+        {
+            Pieces[end.Y, end.X] = piece;
+            Pieces[start.Y, start.X] = null;
+
+            // check if allied king is checked after the move
+            bool isKingChecked = MoveValidator.KingChecked(Pieces, gameState, piece.IsWhite);
+
+            // revert move
+            Pieces[end.Y, end.X] = null;
+            Pieces[start.Y, start.X] = piece;
+
+            return isKingChecked;
+        }
+
+        private void HandleRepetitionCounter(Position start, Position end, Piece piece)
+        {
+            if (gameState.FENContext.FullMoveCounter % 2 == 0)
+            {
+                if ((piece.IsWhite && lastOddWhiteMovePos == end) || (!piece.IsWhite && lastOddBlackMovePos == end))
+                {
+                    repetitionCounter++;
+                }
+                else
+                {
+                    repetitionCounter = 0;
+                }
+            }
+            else
+            {
+                if (piece.IsWhite)
+                    lastOddWhiteMovePos = start;
+                else
+                    lastOddBlackMovePos = start;
+            }
+        }
+
         private void UpdateGameState(Position moveStart, Position moveEnd)
         {
             Piece piece = Pieces[moveStart.Y, moveStart.X];
@@ -143,8 +180,12 @@ namespace Chess
             Board.SetPosition(Pieces);
         }
 
-        public bool TryMove(Position start, Position end)
+        public bool TryMove(Position start, Position end, BoardRotation rotation)
         {
+            start.ApplyRotation(rotation);
+            end.ApplyRotation(rotation);
+            BoardRotation reversedRotation = BoardRotation.WhiteBottom == rotation ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
+
             Piece piece = Pieces[start.Y, start.X];
 
             if (piece == null || gameState.FENContext.IsWhiteToMove != piece.IsWhite)
@@ -153,20 +194,13 @@ namespace Chess
             if (!MoveValidator.CheckMove(Pieces, start, end, gameState, out bool specialMove))
                 return false;
 
-            Pieces[end.Y, end.X] = piece;
-            Pieces[start.Y, start.X] = null;
+            if (AlliedKingCheck(start, end, piece)) return false;
 
-            // check if allied king is checked after the move
-            bool isKingChecked = MoveValidator.KingChecked(Pieces, gameState, piece.IsWhite);
+            Position originalStart = Position.ApplyRotation(start, rotation);
+            Position originalEnd = Position.ApplyRotation(end, rotation);
 
-            // revert move, to update game state correctly
-            Pieces[end.Y, end.X] = null;
-            Pieces[start.Y, start.X] = piece;
-
-            if (isKingChecked)
-                return false;
-
-            if (!Board.MovePiece(start, end))
+            // move piece on the board
+            if (!Board.MovePiece(originalStart, originalEnd))
             {
                 // board and gameController are desynced
                 // sync it back?
@@ -180,7 +214,7 @@ namespace Chess
             {
                 int epY = end.Y + (piece.IsWhite ? 1 : -1);
 
-                Board.RemovePiece(new Position(end.X, epY));
+                Board.RemovePiece(new Position(originalEnd.X, Position.ApplyRotation(epY, reversedRotation)));
                 Pieces[epY, end.X] = null;
             }
             // castling
@@ -194,7 +228,10 @@ namespace Chess
                 Pieces[rookY, rookX] = null;
                 Pieces[rookY, castledRookX] = rook;
 
-                Board.MovePiece(new Position(rookX, rookY), new Position(castledRookX, rookY));
+                Board.MovePiece(
+                    Position.ApplyRotation(rookX, rookY, rotation),
+                    Position.ApplyRotation(castledRookX, rookY, rotation)
+                );
             }
 
             Pieces[end.Y, end.X] = piece;
@@ -204,46 +241,27 @@ namespace Chess
             if (piece.Type == PieceType.Pawn && (end.Y == 0 || end.Y == 7))
             {
                 Pieces[end.Y, end.X] = new Piece(PieceType.Queen, piece.IsWhite);
-                Board.ReplacePiece(end, Pieces[end.Y, end.X]);
+                Board.ReplacePiece(originalEnd, Pieces[end.Y, end.X]);
             }
 
             // update repetition counter
-            if (gameState.FENContext.FullMoveCounter % 2 == 0)
-            {
-                if ((piece.IsWhite && lastOddWhiteMovePos == end) || (!piece.IsWhite && lastOddBlackMovePos == end))
-                {
-                    repetitionCounter++;
-                }
-                else
-                {
-                    repetitionCounter = 0;
-                }
-            }
-            else
-            {
-                if (piece.IsWhite)
-                    lastOddWhiteMovePos = start;
-                else
-                    lastOddBlackMovePos = start;
-            }
-
-            // 3-fold repetition draw
-            if (repetitionCounter == 3)
-            {
-                GameOver(GameResult.Draw);
-            }
-
-            // 50 moves draw
-            if (gameState.FENContext.HalfMoveClock == 50)
-            {
-                GameOver(GameResult.Draw);
-            }
+            HandleRepetitionCounter(start, end, piece);
 
             // win by mate
             if (MoveValidator.KingChecked(Pieces, gameState, !piece.IsWhite) &&
                 MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
             {
                 GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
+            }
+            // 3-fold repetition draw
+            else if (repetitionCounter == 3)
+            {
+                GameOver(GameResult.Draw);
+            }
+            // 50 moves draw
+            else if (gameState.FENContext.HalfMoveClock == 50)
+            {
+                GameOver(GameResult.Draw);
             }
 
             return true;

@@ -8,6 +8,12 @@ using System.Windows.Shapes;
 
 namespace Chess
 {
+    public enum BoardRotation
+    {
+        WhiteBottom,
+        BlackBottom
+    }
+
     public class ChessBoard
     {
         static readonly Dictionary<string, BitmapImage> pieceBitmaps = new Dictionary<string, BitmapImage>
@@ -41,6 +47,7 @@ namespace Chess
         int BoardSize { get; set; }
         int TileSize => BoardSize / 8;
 
+        public BoardRotation Rotation { get; set; } = BoardRotation.WhiteBottom;
         public Game GameManager { get; set; }
 
         public bool interactable = false;
@@ -79,7 +86,12 @@ namespace Chess
             Canvas.SetZIndex(boardImage, -10);
         }
 
-        private void SetObjectPosition(ref Image obj, int row, int column)
+        private int ProjectToRotation(int x)
+        {
+            return Rotation == BoardRotation.WhiteBottom ? x : 7 - x;
+        }
+
+        private void SetObjectPosition(Image obj, int row, int column)
         {
             Canvas.SetTop(obj, row * TileSize);
             Canvas.SetLeft(obj, column * TileSize);
@@ -132,7 +144,7 @@ namespace Chess
             if (pieceSelected && selectedPieceStartPos != pos)
             {
                 pieceSelected = false;
-                if (GameManager.TryMove(selectedPieceStartPos, pos))
+                if (GameManager.TryMove(selectedPieceStartPos, pos, Rotation))
                 {
                     UnselectPiece();
                 }
@@ -178,7 +190,7 @@ namespace Chess
             }
             else if (pieceDragged)
             {
-                if (GameManager.TryMove(selectedPieceStartPos, pos))
+                if (GameManager.TryMove(selectedPieceStartPos, pos, Rotation))
                 {
                     UnselectPiece();
                     pieceSelected = false;
@@ -224,7 +236,7 @@ namespace Chess
             pieceImages[to.Y, to.X] = pieceImages[from.Y, from.X];
             pieceImages[from.Y, from.X] = null;
 
-            SetObjectPosition(ref pieceImages[to.Y, to.X], to.Y, to.X);
+            SetObjectPosition(pieceImages[to.Y, to.X], to.Y, to.X);
 
             return true;
         }
@@ -242,7 +254,7 @@ namespace Chess
                 Width = TileSize,
                 Height = TileSize
             };
-            SetObjectPosition(ref pieceImages[pos.Y, pos.X], pos.Y, pos.X);
+            SetObjectPosition(pieceImages[pos.Y, pos.X], pos.Y, pos.X);
             drawCanvas.Children.Add(pieceImages[pos.Y, pos.X]);
         }
 
@@ -264,7 +276,10 @@ namespace Chess
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    if (board[i, j] == null)
+                    int x = ProjectToRotation(i);
+                    int y = ProjectToRotation(j);
+
+                    if (board[x, y] == null)
                     {
                         pieceImages[i, j] = null;
                     }
@@ -272,12 +287,12 @@ namespace Chess
                     {
                         pieceImages[i, j] = new Image
                         {
-                            Source = pieceBitmaps[board[i, j].ToString()],
+                            Source = pieceBitmaps[board[x, y].ToString()],
                             Width = TileSize,
                             Height = TileSize
                         };
 
-                        SetObjectPosition(ref pieceImages[i, j], i, j);
+                        SetObjectPosition(pieceImages[i, j], i, j);
                         drawCanvas.Children.Add(pieceImages[i, j]);
                     }
                 }
