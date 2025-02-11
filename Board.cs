@@ -229,6 +229,23 @@ namespace Chess
             return true;
         }
 
+        public void ReplacePiece(Position pos, Piece piece)
+        {
+            if (pieceImages[pos.Y, pos.X] != null)
+            {
+                drawCanvas.Children.Remove(pieceImages[pos.Y, pos.X]);
+            }
+
+            pieceImages[pos.Y, pos.X] = new Image
+            {
+                Source = pieceBitmaps[piece.ToString()],
+                Width = TileSize,
+                Height = TileSize
+            };
+            SetObjectPosition(ref pieceImages[pos.Y, pos.X], pos.Y, pos.X);
+            drawCanvas.Children.Add(pieceImages[pos.Y, pos.X]);
+        }
+
         public void RemovePiece(Position pos)
         {
             if (pieceImages[pos.Y, pos.X] == null) return;

@@ -17,6 +17,10 @@ namespace Chess
 
     public class Game
     {
+        private Position lastOddBlackMovePos;
+        private Position lastOddWhiteMovePos;
+        private int repetitionCounter;
+
         public Piece[,] Pieces = null;
         public GameState gameState;
 
@@ -28,7 +32,7 @@ namespace Chess
             Piece piece = Pieces[moveStart.Y, moveStart.X];
 
             gameState.FENContext.IsWhiteToMove = !gameState.FENContext.IsWhiteToMove;
-            
+
             // increase move counters
             if (gameState.FENContext.IsWhiteToMove)
             {
@@ -120,6 +124,11 @@ namespace Chess
             if (Pieces == null)
                 throw new InvalidOperationException("Pieces not loaded.");
 
+            lastOddBlackMovePos = new Position(-1, -1);
+            lastOddWhiteMovePos = new Position(-1, -1);
+
+            repetitionCounter = 0;
+
             Board.interactable = true;
         }
 
@@ -191,6 +200,38 @@ namespace Chess
             Pieces[end.Y, end.X] = piece;
             Pieces[start.Y, start.X] = null;
 
+            // pawn succesion
+            if (piece.Type == PieceType.Pawn && (end.Y == 0 || end.Y == 7))
+            {
+                Pieces[end.Y, end.X] = new Piece(PieceType.Queen, piece.IsWhite);
+                Board.ReplacePiece(end, Pieces[end.Y, end.X]);
+            }
+
+            // update repetition counter
+            if (gameState.FENContext.FullMoveCounter % 2 == 0)
+            {
+                if ((piece.IsWhite && lastOddWhiteMovePos == end) || (!piece.IsWhite && lastOddBlackMovePos == end))
+                {
+                    repetitionCounter++;
+                }
+                else
+                {
+                    repetitionCounter = 0;
+                }
+            }
+            else
+            {
+                if (piece.IsWhite)
+                    lastOddWhiteMovePos = start;
+                else
+                    lastOddBlackMovePos = start;
+            }
+
+            // 3-fold repetition draw
+            if (repetitionCounter == 3)
+            {
+                GameOver(GameResult.Draw);
+            }
 
             // 50 moves draw
             if (gameState.FENContext.HalfMoveClock == 50)
