@@ -28,8 +28,19 @@ namespace Chess
             Piece piece = Pieces[moveStart.Y, moveStart.X];
 
             gameState.FENContext.IsWhiteToMove = !gameState.FENContext.IsWhiteToMove;
-            gameState.FENContext.FullMoveCounter++;
+            
+            // increase move counters
+            if (gameState.FENContext.IsWhiteToMove)
+            {
+                gameState.FENContext.FullMoveCounter++;
+                gameState.FENContext.HalfMoveClock++;
+            }
 
+            // reset half move clock
+            if (piece.Type == PieceType.Pawn || Pieces[moveEnd.Y, moveEnd.X] != null)
+                gameState.FENContext.HalfMoveClock = 0;
+
+            // refresh castling rights
             if (piece.Type == PieceType.King)
             {
                 if (piece.IsWhite)
@@ -61,15 +72,11 @@ namespace Chess
                 }
             }
 
+            // set en passant target
             if (piece.Type == PieceType.Pawn && Math.Abs(moveStart.Y - moveEnd.Y) == 2)
                 gameState.FENContext.EnPassantTarget = new Position(moveEnd.X, (moveStart.Y + moveEnd.Y) / 2);
             else
                 gameState.FENContext.EnPassantTarget = new Position(-1, -1);
-
-            if (piece.Type == PieceType.Pawn || Pieces[moveEnd.Y, moveEnd.X] != null)
-                gameState.FENContext.HalfMoveClock = 0;
-            else
-                gameState.FENContext.HalfMoveClock++;
         }
 
         private void GameOver(GameResult isWhite)
@@ -184,9 +191,19 @@ namespace Chess
             Pieces[end.Y, end.X] = piece;
             Pieces[start.Y, start.X] = null;
 
+
+            // 50 moves draw
+            if (gameState.FENContext.HalfMoveClock == 50)
+            {
+                GameOver(GameResult.Draw);
+            }
+
+            // win by mate
             if (MoveValidator.KingChecked(Pieces, gameState, !piece.IsWhite) &&
                 MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
+            {
                 GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
+            }
 
             return true;
         }
