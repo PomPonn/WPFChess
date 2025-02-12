@@ -33,7 +33,6 @@ namespace Chess
             { "b_r", new BitmapImage(new Uri("images/pieces/b_r.png", UriKind.Relative)) }
         };
         static readonly BitmapImage boardBitmap = new BitmapImage(new Uri("images/board.png", UriKind.Relative));
-        static readonly SoundPlayer moveSound = new SoundPlayer("sounds/piece_move.wav");
         static readonly SolidColorBrush highlightColor = new SolidColorBrush(Colors.LightCoral);
 
         readonly Canvas drawCanvas;
@@ -230,8 +229,6 @@ namespace Chess
             moveHighlight.Show(drawCanvas);
 
             SetImagePosition(pieceImages[to.Y, to.X], to.Y, to.X);
-
-            moveSound.Play();
 
             return true;
         }

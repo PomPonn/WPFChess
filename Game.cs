@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Media;
 using System.Windows;
 
 namespace Chess
@@ -17,6 +18,10 @@ namespace Chess
 
     public class Game
     {
+        static readonly SoundPlayer moveSound = new SoundPlayer("audio/piece_move.wav");
+        static readonly SoundPlayer takeSound = new SoundPlayer("audio/piece_take.wav");
+        static readonly SoundPlayer checkSound = new SoundPlayer("audio/piece_check.wav");
+
         private Position lastOddBlackMovePos;
         private Position lastOddWhiteMovePos;
         private int repetitionCounter;
@@ -29,6 +34,8 @@ namespace Chess
 
         private bool AlliedKingCheck(Position start, Position end, Piece piece)
         {
+            Piece temp = Pieces[end.Y, end.X];
+
             Pieces[end.Y, end.X] = piece;
             Pieces[start.Y, start.X] = null;
 
@@ -36,7 +43,7 @@ namespace Chess
             bool isKingChecked = MoveValidator.KingChecked(Pieces, gameState, piece.IsWhite);
 
             // revert move
-            Pieces[end.Y, end.X] = null;
+            Pieces[end.Y, end.X] = temp;
             Pieces[start.Y, start.X] = piece;
 
             return isKingChecked;
@@ -204,7 +211,7 @@ namespace Chess
             {
                 // board and gameController are desynced
                 // sync it back?
-                throw new Exception("MovePiece failed.");
+                throw new Exception("Piece move failed.");
             }
 
             UpdateGameState(start, end);
@@ -234,6 +241,8 @@ namespace Chess
                 );
             }
 
+            bool isTake = Pieces[end.Y, end.X] != null;
+
             Pieces[end.Y, end.X] = piece;
             Pieces[start.Y, start.X] = null;
 
@@ -247,9 +256,17 @@ namespace Chess
             // update repetition counter
             HandleRepetitionCounter(start, end, piece);
 
+            bool enenyKingChecked = MoveValidator.KingChecked(Pieces, gameState, !piece.IsWhite);
+
+            if (enenyKingChecked)
+                checkSound.Play();
+            else if (isTake || specialMove)
+                takeSound.Play();
+            else
+                moveSound.Play();
+
             // win by mate
-            if (MoveValidator.KingChecked(Pieces, gameState, !piece.IsWhite) &&
-                MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
+            if (enenyKingChecked && MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
             {
                 GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
             }
