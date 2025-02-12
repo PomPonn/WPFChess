@@ -122,7 +122,7 @@ namespace Chess
 
         private void GameOver(GameResult isWhite)
         {
-            Board.interactable = false;
+            Board.Interactable = false;
 
             string message;
 
@@ -137,7 +137,7 @@ namespace Chess
         public Game(ChessBoard board, Piece[,] pieces = null)
         {
             Board = board;
-            board.interactable = false;
+            board.Interactable = false;
             board.GameManager = this;
 
             gameState.FENContext = new FEN.Context
@@ -166,7 +166,7 @@ namespace Chess
 
             repetitionCounter = 0;
 
-            Board.interactable = true;
+            Board.Interactable = true;
         }
 
         public void LoadFENPosition(string fen)

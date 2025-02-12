@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Media;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace Chess
 {
@@ -32,11 +33,14 @@ namespace Chess
             { "b_r", new BitmapImage(new Uri("images/pieces/b_r.png", UriKind.Relative)) }
         };
         static readonly BitmapImage boardBitmap = new BitmapImage(new Uri("images/board.png", UriKind.Relative));
+        static readonly SoundPlayer moveSound = new SoundPlayer("sounds/piece_move.wav");
+        static readonly SolidColorBrush highlightColor = new SolidColorBrush(Colors.LightCoral);
 
         readonly Canvas drawCanvas;
         readonly Image boardImage;
-        readonly Image[,] pieceImages;
-        readonly Rectangle[] squareTints;
+        readonly Image[,] pieceImages = new Image[8, 8];
+        readonly MoveHighlight moveHighlight;
+        readonly SquareHighlight selectedHighlight;
 
         Image selectedPiece = null;
         Position selectedPieceStartPos = new Position();
@@ -50,8 +54,7 @@ namespace Chess
         public BoardRotation Rotation { get; set; } = BoardRotation.WhiteBottom;
         public Game GameManager { get; set; }
 
-        public bool interactable = false;
-
+        public bool Interactable { get; set; } = true;
 
         public ChessBoard(Window eventContextWindow, Canvas drawCanvas, int boardSize)
         {
@@ -62,20 +65,8 @@ namespace Chess
             eventContextWindow.MouseMove += BoardMouseMove;
             eventContextWindow.MouseLeftButtonUp += BoardMouseUp;
 
-            pieceImages = new Image[8, 8];
-
-            squareTints = new Rectangle[3];
-            for (int i = 0; i < squareTints.Length; i++)
-            {
-                squareTints[i] = new Rectangle
-                {
-                    Fill = System.Windows.Media.Brushes.Orange,
-                    Opacity = 0.25,
-                    Width = TileSize,
-                    Height = TileSize
-                };
-                Canvas.SetZIndex(squareTints[i], -2);
-            }
+            moveHighlight = new MoveHighlight(highlightColor, TileSize);
+            selectedHighlight = new SquareHighlight(highlightColor, TileSize);
 
             boardImage = new Image
             {
@@ -91,7 +82,7 @@ namespace Chess
             return Rotation == BoardRotation.WhiteBottom ? x : 7 - x;
         }
 
-        private void SetObjectPosition(Image obj, int row, int column)
+        private void SetImagePosition(Image obj, int row, int column)
         {
             Canvas.SetTop(obj, row * TileSize);
             Canvas.SetLeft(obj, column * TileSize);
@@ -117,9 +108,8 @@ namespace Chess
             selectedPieceStartPos = pos;
             Canvas.SetZIndex(selectedPiece, 10);
 
-            Canvas.SetTop(squareTints[0], pos.Y * TileSize);
-            Canvas.SetLeft(squareTints[0], pos.X * TileSize);
-            drawCanvas.Children.Add(squareTints[0]);
+            selectedHighlight.SetPosition(pos);
+            selectedHighlight.Show(drawCanvas);
         }
 
         private void UnselectPiece()
@@ -129,12 +119,12 @@ namespace Chess
             Canvas.SetZIndex(selectedPiece, 0);
             selectedPiece = null;
 
-            drawCanvas.Children.Remove(squareTints[0]);
+            selectedHighlight.Hide(drawCanvas);
         }
 
         private void BoardMouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (!interactable) return;
+            if (!Interactable) return;
 
             Point p = e.GetPosition(drawCanvas);
             Position pos = Position.FromPoint(p, TileSize);
@@ -169,7 +159,7 @@ namespace Chess
 
         private void BoardMouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (!interactable || selectedPiece == null) return;
+            if (!Interactable || selectedPiece == null) return;
 
             Point p = e.GetPosition(drawCanvas);
             Position pos = Position.FromPoint(p, TileSize);
@@ -207,7 +197,7 @@ namespace Chess
 
         private void BoardMouseMove(object sender, MouseEventArgs e)
         {
-            if (!interactable || !pieceDragged || selectedPiece == null) return;
+            if (!Interactable || !pieceDragged || selectedPiece == null) return;
 
             if (e.LeftButton == MouseButtonState.Released)
             {
@@ -221,8 +211,8 @@ namespace Chess
 
             Point p = e.GetPosition(drawCanvas);
 
-            Canvas.SetLeft(selectedPiece, p.X - TileSize / 2);
-            Canvas.SetTop(selectedPiece, p.Y - TileSize / 2);
+            Canvas.SetLeft(selectedPiece, p.X - (TileSize / 2));
+            Canvas.SetTop(selectedPiece, p.Y - (TileSize / 2));
         }
 
         public bool MovePiece(Position from, Position to)
@@ -236,7 +226,12 @@ namespace Chess
             pieceImages[to.Y, to.X] = pieceImages[from.Y, from.X];
             pieceImages[from.Y, from.X] = null;
 
-            SetObjectPosition(pieceImages[to.Y, to.X], to.Y, to.X);
+            moveHighlight.SetPosition(from, to);
+            moveHighlight.Show(drawCanvas);
+
+            SetImagePosition(pieceImages[to.Y, to.X], to.Y, to.X);
+
+            moveSound.Play();
 
             return true;
         }
@@ -254,7 +249,7 @@ namespace Chess
                 Width = TileSize,
                 Height = TileSize
             };
-            SetObjectPosition(pieceImages[pos.Y, pos.X], pos.Y, pos.X);
+            SetImagePosition(pieceImages[pos.Y, pos.X], pos.Y, pos.X);
             drawCanvas.Children.Add(pieceImages[pos.Y, pos.X]);
         }
 
@@ -292,7 +287,7 @@ namespace Chess
                             Height = TileSize
                         };
 
-                        SetObjectPosition(pieceImages[i, j], i, j);
+                        SetImagePosition(pieceImages[i, j], i, j);
                         drawCanvas.Children.Add(pieceImages[i, j]);
                     }
                 }

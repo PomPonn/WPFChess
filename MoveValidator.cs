@@ -85,7 +85,7 @@ namespace Chess
             if (from.X == to.X && pieces[to.Y, to.X] == null)
             {
                 // Double move from starting position
-                if (from.Y == startRow && to.Y == from.Y + 2 * direction && pieces[from.Y + direction, from.X] == null)
+                if (from.Y == startRow && to.Y == from.Y + (2 * direction) && pieces[from.Y + direction, from.X] == null)
                 {
                     return true;
                 }
@@ -133,7 +133,7 @@ namespace Chess
                 int yDir = Math.Sign(to.Y - from.Y);
                 for (int i = 1; i < Math.Abs(from.X - to.X); i++)
                 {
-                    if (pieces[from.Y + i * yDir, from.X + i * xDir] != null)
+                    if (pieces[from.Y + (i * yDir), from.X + (i * xDir)] != null)
                         return false;
                 }
                 return true;
@@ -149,7 +149,7 @@ namespace Chess
                 int dir = Math.Sign(to.Y - from.Y);
                 for (int i = 1; i < Math.Abs(from.Y - to.Y); i++)
                 {
-                    if (pieces[from.Y + i * dir, from.X] != null)
+                    if (pieces[from.Y + (i * dir), from.X] != null)
                         return false;
                 }
 
@@ -160,7 +160,7 @@ namespace Chess
                 int dir = Math.Sign(to.X - from.X);
                 for (int i = 1; i < Math.Abs(from.X - to.X); i++)
                 {
-                    if (pieces[from.Y, from.X + i * dir] != null)
+                    if (pieces[from.Y, from.X + (i * dir)] != null)
                         return false;
                 }
 
