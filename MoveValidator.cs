@@ -10,14 +10,41 @@ namespace Chess
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    if (pieces[i, j] != null && pieces[i, j].Type == PieceType.King && pieces[i, j].IsWhite == isWhite)
+                    if (pieces[j, i] != null && pieces[j, i].Type == PieceType.King && pieces[j, i].IsWhite == isWhite)
                     {
-                        return new Position(j, i);
+                        return new Position(i, j);
                     }
                 }
             }
 
             return new Position(-1, -1);
+        }
+
+        private static bool CheckTilesForEachPiece(Piece[,] pieces, bool isWhite, Func<Position, Position, bool> checkPiece)
+        {
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (pieces[j, i] == null || pieces[j, i].IsWhite != isWhite) continue;
+
+                    Position startPos = new Position(i, j);
+
+                    for (int k = 0; k < 8; k++)
+                    {
+                        for (int l = 0; l < 8; l++)
+                        {
+                            Position testPos = new Position(k, l);
+
+                            if (startPos == testPos) continue;
+
+                            if (checkPiece(startPos, testPos)) return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static bool VerifyCastlingRights(Piece king, GameState gameState, Position start, Position end)
@@ -50,7 +77,7 @@ namespace Chess
             specialMove = false;
 
             if (!from.InBounds() || !to.InBounds() ||
-                pieces[to.Y, to.X] != null && pieces[from.Y, from.X].IsWhite == pieces[to.Y, to.X].IsWhite)
+                (pieces[to.Y, to.X] != null && pieces[from.Y, from.X].IsWhite == pieces[to.Y, to.X].IsWhite))
                 return false;
 
             switch (pieces[from.Y, from.X].Type)
@@ -209,7 +236,7 @@ namespace Chess
 
                         pieces[from.Y, i] = king;
 
-                        bool isChecked = KingChecked(pieces, gameState, new Position(i, from.Y));
+                        bool isChecked = KingChecked(pieces, gameState, new Position(from.Y, i));
 
                         pieces[from.Y, i] = null;
 
@@ -229,7 +256,9 @@ namespace Chess
 
         public static bool KingChecked(Piece[,] pieces, GameState gameState, Position kingPos)
         {
-            if (!kingPos.InBounds()) return false;
+            Piece king = pieces[kingPos.Y, kingPos.X];
+
+            if (!kingPos.InBounds() || king == null || king.Type != PieceType.King) return false;
 
             bool isWhite = pieces[kingPos.Y, kingPos.X].IsWhite;
 
@@ -237,9 +266,9 @@ namespace Chess
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    if (pieces[i, j] != null && pieces[i, j].IsWhite != isWhite)
+                    if (pieces[j, i] != null && pieces[j, i].IsWhite != isWhite)
                     {
-                        if (CheckMove(pieces, new Position(j, i), kingPos, gameState, out _))
+                        if (CheckMove(pieces, new Position(i, j), kingPos, gameState, out _))
                         {
                             return true;
                         }
@@ -257,6 +286,41 @@ namespace Chess
             return KingChecked(pieces, gameState, kingPos);
         }
 
+        public static bool Stalemate(Piece[,] pieces, GameState gameState, bool isWhite)
+        {
+            if (KingChecked(pieces, gameState, isWhite))
+                return false;
+
+            return !CheckTilesForEachPiece(pieces, isWhite, (startPos, testPos) =>
+            {
+                bool moveValid = CheckMove(pieces, startPos, testPos, gameState, out _);
+
+                if (pieces[startPos.Y, startPos.X].Type == PieceType.King)
+                {
+                    if (moveValid)
+                    {
+                        (int sX, int sY) = startPos;
+                        (int tX, int tY) = testPos;
+
+                        Piece piece = pieces[tY, tX];
+
+                        pieces[tY, tX] = pieces[sY, sX];
+                        pieces[sY, sX] = null;
+
+                        moveValid = !KingChecked(pieces, gameState, testPos);
+
+                        pieces[sY, sX] = pieces[tY, tX];
+                        pieces[tY, tX] = piece;
+
+                    }
+
+                    return moveValid;
+                }
+
+                return !moveValid;
+            });
+        }
+
         public static bool KingMated(Piece[,] pieces, GameState gameState, bool isWhite)
         {
             Position kingPos = FindKing(pieces, isWhite);
@@ -264,42 +328,30 @@ namespace Chess
             if (!KingChecked(pieces, gameState, kingPos))
                 return false;
 
-            for (int i = 0; i < 8; i++)
+            return !CheckTilesForEachPiece(pieces, isWhite, (startPos, testPos) =>
             {
-                for (int j = 0; j < 8; j++)
+                if (CheckMove(pieces, startPos, testPos, gameState, out _))
                 {
-                    if (pieces[i, j] == null || pieces[i, j].IsWhite != isWhite) continue;
+                    (int sX, int sY) = startPos;
+                    (int tX, int tY) = testPos;
 
-                    Position startPos = new Position(j, i);
+                    Piece piece = pieces[tY, tX];
 
-                    for (int k = 0; k < 8; k++)
-                    {
-                        for (int l = 0; l < 8; l++)
-                        {
-                            Position testPos = new Position(l, k);
+                    pieces[tY, tX] = pieces[sY, sX];
+                    pieces[sY, sX] = null;
 
-                            if (CheckMove(pieces, startPos, testPos, gameState, out _))
-                            {
-                                Piece piece = pieces[k, l];
+                    bool isChecked = startPos == kingPos ?
+                        KingChecked(pieces, gameState, testPos) :
+                        KingChecked(pieces, gameState, kingPos);
 
-                                pieces[k, l] = pieces[i, j];
-                                pieces[i, j] = null;
+                    pieces[sY, sX] = pieces[tY, tX];
+                    pieces[tY, tX] = piece;
 
-                                bool isChecked = startPos == kingPos ?
-                                    KingChecked(pieces, gameState, testPos) :
-                                    KingChecked(pieces, gameState, kingPos);
-
-                                pieces[i, j] = pieces[k, l];
-                                pieces[k, l] = piece;
-
-                                if (!isChecked) return false;
-                            }
-                        }
-                    }
+                    return !isChecked;
                 }
-            }
 
-            return true;
+                return false;
+            });
         }
     }
 }

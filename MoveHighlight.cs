@@ -40,10 +40,10 @@ namespace Chess
             IsVisible = false;
         }
 
-        public void SetPosition(Position from, Position to)
+        public void InitPosition(Position from, Position to)
         {
-            sqrs[0].SetPosition(from);
-            sqrs[1].SetPosition(to);
+            sqrs[0].InitPosition(from);
+            sqrs[1].InitPosition(to);
         }
     }
 
@@ -89,7 +89,7 @@ namespace Chess
             IsVisible = false;
         }
 
-        public void SetPosition(Position pos)
+        public void InitPosition(Position pos)
         {
             Canvas.SetLeft(rect, pos.X * tileSize);
             Canvas.SetTop(rect, pos.Y * tileSize);

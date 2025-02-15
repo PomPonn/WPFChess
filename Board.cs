@@ -34,25 +34,24 @@ namespace Chess
         static readonly BitmapImage boardBitmap = new BitmapImage(new Uri("images/board.png", UriKind.Relative));
         static readonly SolidColorBrush highlightColor = new SolidColorBrush(Colors.LightCoral);
 
+        readonly Image[,] pieceImages = new Image[8, 8];
         readonly Canvas drawCanvas;
         readonly Image boardImage;
-        readonly Image[,] pieceImages = new Image[8, 8];
         readonly MoveHighlight moveHighlight;
         readonly SquareHighlight selectedHighlight;
 
-        Image selectedPiece = null;
         Position selectedPieceStartPos = new Position();
+        Image selectedPiece = null;
         bool pieceSelected = false;
         bool pieceDragged = false;
 
-        // in pixels
+        public BoardRotation Rotation { get; set; } = BoardRotation.WhiteBottom;
+        public bool Interactable { get; set; } = true;
+        public Game GameManager { get; set; }
         int BoardSize { get; set; }
+
         int TileSize => BoardSize / 8;
 
-        public BoardRotation Rotation { get; set; } = BoardRotation.WhiteBottom;
-        public Game GameManager { get; set; }
-
-        public bool Interactable { get; set; } = true;
 
         public ChessBoard(Window eventContextWindow, Canvas drawCanvas, int boardSize)
         {
@@ -80,10 +79,10 @@ namespace Chess
             return Rotation == BoardRotation.WhiteBottom ? x : 7 - x;
         }
 
-        private void SetImagePosition(Image obj, int row, int column)
+        private void SetImagePosition(Image obj, Position offset)
         {
-            Canvas.SetTop(obj, row * TileSize);
-            Canvas.SetLeft(obj, column * TileSize);
+            Canvas.SetTop(obj, offset.Y * TileSize);
+            Canvas.SetLeft(obj, offset.X * TileSize);
         }
 
         private void RevertSelectedPiecePosition()
@@ -106,7 +105,7 @@ namespace Chess
             selectedPieceStartPos = pos;
             Canvas.SetZIndex(selectedPiece, 10);
 
-            selectedHighlight.SetPosition(pos);
+            selectedHighlight.InitPosition(pos);
             selectedHighlight.Show(drawCanvas);
         }
 
@@ -224,10 +223,10 @@ namespace Chess
             pieceImages[to.Y, to.X] = pieceImages[from.Y, from.X];
             pieceImages[from.Y, from.X] = null;
 
-            moveHighlight.SetPosition(from, to);
+            moveHighlight.InitPosition(from, to);
             moveHighlight.Show(drawCanvas);
 
-            SetImagePosition(pieceImages[to.Y, to.X], to.Y, to.X);
+            SetImagePosition(pieceImages[to.Y, to.X], to);
 
             return true;
         }
@@ -245,7 +244,7 @@ namespace Chess
                 Width = TileSize,
                 Height = TileSize
             };
-            SetImagePosition(pieceImages[pos.Y, pos.X], pos.Y, pos.X);
+            SetImagePosition(pieceImages[pos.Y, pos.X], pos);
             drawCanvas.Children.Add(pieceImages[pos.Y, pos.X]);
         }
 
@@ -257,7 +256,7 @@ namespace Chess
             pieceImages[pos.Y, pos.X] = null;
         }
 
-        public void SetPosition(Piece[,] board)
+        public void InitPosition(Piece[,] board)
         {
             drawCanvas.Children.Clear();
 
@@ -270,21 +269,21 @@ namespace Chess
                     int x = ProjectToRotation(i);
                     int y = ProjectToRotation(j);
 
-                    if (board[x, y] == null)
+                    if (board[y, x] == null)
                     {
-                        pieceImages[i, j] = null;
+                        pieceImages[j, i] = null;
                     }
                     else
                     {
-                        pieceImages[i, j] = new Image
+                        pieceImages[j, i] = new Image
                         {
-                            Source = pieceBitmaps[board[x, y].ToString()],
+                            Source = pieceBitmaps[board[y, x].ToString()],
                             Width = TileSize,
                             Height = TileSize
                         };
 
-                        SetImagePosition(pieceImages[i, j], i, j);
-                        drawCanvas.Children.Add(pieceImages[i, j]);
+                        SetImagePosition(pieceImages[j, i], new Position(i, j));
+                        drawCanvas.Children.Add(pieceImages[j, i]);
                     }
                 }
             }

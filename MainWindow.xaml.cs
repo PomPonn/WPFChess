@@ -18,11 +18,10 @@ namespace Chess
             Game game = new Game(board);
 
             // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+            // "k7/8/8/8/8/8/8/QK6 b - - 0 30"
             game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
             game.Start();
-
-            //board.MovePiece(new Position('b', 2), new Position('b', 4));
         }
     }
 }

@@ -8,6 +8,7 @@ namespace Chess
         public int X { get; set; }
         public int Y { get; set; }
 
+
         public Position(int x, int y)
         {
             X = x;
@@ -18,6 +19,12 @@ namespace Chess
         {
             X = file - 'h';
             Y = 8 - rank;
+        }
+
+        public void Deconstruct(out int x, out int y)
+        {
+            x = X;
+            y = Y;
         }
 
         public bool InBounds()
@@ -83,7 +90,7 @@ namespace Chess
 
         public override string ToString()
         {
-            return $"{(char)(X + 'a')}{8 - Y}";
+            return $"{(char)(Y + 'a')}{8 - X}";
         }
     }
 }

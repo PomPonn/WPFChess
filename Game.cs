@@ -21,16 +21,78 @@ namespace Chess
         static readonly SoundPlayer moveSound = new SoundPlayer("audio/piece_move.wav");
         static readonly SoundPlayer takeSound = new SoundPlayer("audio/piece_take.wav");
         static readonly SoundPlayer checkSound = new SoundPlayer("audio/piece_check.wav");
-
-        private Position lastOddBlackMovePos;
-        private Position lastOddWhiteMovePos;
-        private int repetitionCounter;
+        static readonly int MIN_MATERIAL = 5;
 
         public Piece[,] Pieces = null;
+		private Position lastOddBlackMovePos;
+        private Position lastOddWhiteMovePos;
         public GameState gameState;
+		private int whiteMaterial = 0;
+		private int blackMaterial = 0;
+		private int repetitionCounter;
 
         public ChessBoard Board { get; set; }
 
+
+        public Game(ChessBoard board, Piece[,] pieces = null)
+        {
+            Board = board;
+            board.Interactable = false;
+            board.GameManager = this;
+
+            gameState.FENContext = new FEN.Context
+            {
+                castlingRights = new CastlingBitField(0b1111),
+                IsWhiteToMove = true,
+                EnPassantTarget = new Position(-1, -1),
+                HalfMoveClock = 0,
+                FullMoveCounter = 1
+            };
+
+            if (pieces != null)
+            {
+                Pieces = pieces;
+                board.InitPosition(Pieces);
+            }
+        }
+
+        private void GameOver(GameResult isWhite, string message = "")
+        {
+            Board.Interactable = false;
+
+            string text;
+
+            if (isWhite == GameResult.Draw)
+                text = "Draw! " + message;
+            else
+                text = "Checkmate! " + (isWhite == GameResult.WhiteWin ? "White" : "Black") + " wins! " + message;
+
+            MessageBox.Show(text, "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        public void Start()
+        {
+            if (Pieces == null)
+                throw new InvalidOperationException("Pieces not loaded.");
+
+            lastOddBlackMovePos = new Position(-1, -1);
+            lastOddWhiteMovePos = new Position(-1, -1);
+
+            repetitionCounter = 0;
+
+            Board.Interactable = true;
+        }
+
+        public void LoadFENPosition(string fen)
+        {
+            var res = FEN.Parse(fen);
+
+            Pieces = res.board;
+
+            gameState.FENContext = res.context;
+
+            Board.InitPosition(Pieces);
+        }
 
         private bool AlliedKingCheck(Position start, Position end, Piece piece)
         {
@@ -127,64 +189,34 @@ namespace Chess
                 gameState.FENContext.EnPassantTarget = new Position(-1, -1);
         }
 
-        private void GameOver(GameResult isWhite)
+        private bool PawnExists(bool isWhite)
         {
-            Board.Interactable = false;
-
-            string message;
-
-            if (isWhite == GameResult.Draw)
-                message = "Draw!";
-            else
-                message = "Checkmate! " + (isWhite == GameResult.WhiteWin ? "White" : "Black") + " wins!";
-
-            MessageBox.Show(message, "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
+            foreach (Piece piece in Pieces)
+            {
+                if (piece == null) continue;
+                if (piece.Type == PieceType.Pawn && piece.IsWhite == isWhite)
+                    return true;
+            }
+            return false;
         }
 
-        public Game(ChessBoard board, Piece[,] pieces = null)
+        private void CountMaterial()
         {
-            Board = board;
-            board.Interactable = false;
-            board.GameManager = this;
-
-            gameState.FENContext = new FEN.Context
+            whiteMaterial = 0;
+            blackMaterial = 0;
+            foreach (Piece piece in Pieces)
             {
-                castlingRights = new CastlingBitField(0b1111),
-                IsWhiteToMove = true,
-                EnPassantTarget = new Position(-1, -1),
-                HalfMoveClock = 0,
-                FullMoveCounter = 1
-            };
-
-            if (pieces != null)
-            {
-                Pieces = pieces;
-                board.SetPosition(Pieces);
+                if (piece == null) continue;
+                if (piece.IsWhite)
+                    whiteMaterial += piece.Value;
+                else
+                    blackMaterial += piece.Value;
             }
         }
 
-        public void Start()
+        private bool CheckMaterial(bool isWhite)
         {
-            if (Pieces == null)
-                throw new InvalidOperationException("Pieces not loaded.");
-
-            lastOddBlackMovePos = new Position(-1, -1);
-            lastOddWhiteMovePos = new Position(-1, -1);
-
-            repetitionCounter = 0;
-
-            Board.Interactable = true;
-        }
-
-        public void LoadFENPosition(string fen)
-        {
-            var res = FEN.Parse(fen);
-
-            Pieces = res.board;
-
-            gameState.FENContext = res.context;
-
-            Board.SetPosition(Pieces);
+            return (isWhite ? whiteMaterial : blackMaterial) >= MIN_MATERIAL || PawnExists(isWhite);
         }
 
         public bool TryMove(Position start, Position end, BoardRotation rotation)
@@ -265,20 +297,32 @@ namespace Chess
             else
                 moveSound.Play();
 
+            CountMaterial();
+
             // win by mate
-            if (enenyKingChecked && MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
+            if (MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
             {
                 GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
+            }
+            // insufficient material
+            else if (!CheckMaterial(piece.IsWhite) && !CheckMaterial(!piece.IsWhite))
+            {
+                GameOver(GameResult.Draw, "Insufficient Material");
             }
             // 3-fold repetition draw
             else if (repetitionCounter == 3)
             {
-                GameOver(GameResult.Draw);
+                GameOver(GameResult.Draw, "By repetition");
             }
             // 50 moves draw
             else if (gameState.FENContext.HalfMoveClock == 50)
             {
-                GameOver(GameResult.Draw);
+                GameOver(GameResult.Draw, "50 passive moves");
+            }
+            // Stalemate draw
+            else if (MoveValidator.Stalemate(Pieces, gameState, !piece.IsWhite))
+            {
+                GameOver(GameResult.Draw, "Stalemate");
             }
 
             return true;

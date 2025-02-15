@@ -16,6 +16,7 @@ namespace Chess
     {
         public int Value { get; private set; }
 
+
         public CastlingBitField(int value)
         {
             Value = value;
@@ -53,6 +54,7 @@ namespace Chess
             public Piece[,] board;
             public Context context;
         }
+
 
         private static void ParseRowPlacement(Piece[,] table, int rowNumber, string placementStr)
         {
