@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System.Threading.Tasks;
+using System.Windows;
 
 namespace Chess
 {
@@ -10,18 +11,30 @@ namespace Chess
         {
             InitializeComponent();
 
-            ChessBoard board = new ChessBoard(this, cnv_boardWrapper, 640)
-            {
-                Rotation = BoardRotation.WhiteBottom
-            };
+            //ChessBoard board = new ChessBoard(this, cnv_boardWrapper, 640)
+            //{
+            //    Rotation = BoardRotation.WhiteBottom
+            //}
+            //;
 
-            Game game = new Game(board);
+            //Game game = new Game(board);
 
-            // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-            // "k7/8/8/8/8/8/8/QK6 b - - 0 30"
-            game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            //// "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+            //// "k7/8/8/8/8/8/8/QK6 b - - 0 30"
+            //game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-            game.Start();
+            //game.Start();
+
+            ChessEngine engine = new ChessEngine();
+
+            engine.Connect().Wait();
+
+            var options = new ChessEngine.SendOptions
+                ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+            engine.SendPosition(options).Wait();
+
+            engine.GetResponse();
         }
     }
 }

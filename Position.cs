@@ -79,8 +79,7 @@ namespace Chess
             if (!(obj is Position))
                 return false;
 
-            Position other = (Position)obj;
-            return this == other;
+            return this == (Position)obj;
         }
 
         public override int GetHashCode()

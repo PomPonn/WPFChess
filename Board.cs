@@ -35,6 +35,7 @@ namespace Chess
         static readonly SolidColorBrush highlightColor = new SolidColorBrush(Colors.LightCoral);
 
         readonly Image[,] pieceImages = new Image[8, 8];
+        readonly Window contextWindow;
         readonly Canvas drawCanvas;
         readonly Image boardImage;
         readonly MoveHighlight moveHighlight;
@@ -53,14 +54,15 @@ namespace Chess
         int TileSize => BoardSize / 8;
 
 
-        public ChessBoard(Window eventContextWindow, Canvas drawCanvas, int boardSize)
+        public ChessBoard(Window contextWindow, Canvas drawCanvas, int boardSize)
         {
             BoardSize = boardSize;
             this.drawCanvas = drawCanvas;
+            this.contextWindow = contextWindow;
 
-            eventContextWindow.MouseLeftButtonDown += BoardMouseDown;
-            eventContextWindow.MouseMove += BoardMouseMove;
-            eventContextWindow.MouseLeftButtonUp += BoardMouseUp;
+            contextWindow.MouseLeftButtonDown += BoardMouseDown;
+            contextWindow.MouseMove += BoardMouseMove;
+            contextWindow.MouseLeftButtonUp += BoardMouseUp;
 
             moveHighlight = new MoveHighlight(highlightColor, TileSize);
             selectedHighlight = new SquareHighlight(highlightColor, TileSize);
@@ -91,6 +93,18 @@ namespace Chess
 
             Canvas.SetTop(selectedPiece, selectedPieceStartPos.Y * TileSize);
             Canvas.SetLeft(selectedPiece, selectedPieceStartPos.X * TileSize);
+        }
+
+        private void StartDrag()
+        {
+            pieceDragged = true;
+            contextWindow.Cursor = Cursors.Hand;
+        }
+
+        private void EndDrag()
+        {
+            pieceDragged = false;
+            contextWindow.Cursor = Cursors.Arrow;
         }
 
         private void SelectPiece(Position pos)
@@ -143,14 +157,14 @@ namespace Chess
                     if (pieceImages[pos.Y, pos.X] != null)
                     {
                         SelectPiece(pos);
-                        pieceDragged = true;
+                        StartDrag();
                     }
                 }
             }
             else
             {
                 SelectPiece(pos);
-                pieceDragged = true;
+                StartDrag();
             }
         }
 
@@ -189,7 +203,7 @@ namespace Chess
                 }
             }
 
-            pieceDragged = false;
+            EndDrag();
         }
 
         private void BoardMouseMove(object sender, MouseEventArgs e)
@@ -201,7 +215,7 @@ namespace Chess
                 RevertSelectedPiecePosition();
                 UnselectPiece();
                 pieceSelected = false;
-                pieceDragged = false;
+                EndDrag();
 
                 return;
             }
