@@ -16,25 +16,25 @@ namespace Chess
         Draw
     }
 
-    public class Game
+    public class GameManager
     {
-        static readonly SoundPlayer moveSound = new SoundPlayer("audio/piece_move.wav");
-        static readonly SoundPlayer takeSound = new SoundPlayer("audio/piece_take.wav");
-        static readonly SoundPlayer checkSound = new SoundPlayer("audio/piece_check.wav");
+        static readonly SoundPlayer moveSound = new("audio/piece_move.wav");
+        static readonly SoundPlayer takeSound = new("audio/piece_take.wav");
+        static readonly SoundPlayer checkSound = new("audio/piece_check.wav");
         static readonly int MIN_MATERIAL = 5;
 
         public Piece[,] Pieces = null;
-		private Position lastOddBlackMovePos;
+        private Position lastOddBlackMovePos;
         private Position lastOddWhiteMovePos;
         public GameState gameState;
-		private int whiteMaterial = 0;
-		private int blackMaterial = 0;
-		private int repetitionCounter;
+        private int whiteMaterial = 0;
+        private int blackMaterial = 0;
+        private int repetitionCounter;
 
         public ChessBoard Board { get; set; }
 
 
-        public Game(ChessBoard board, Piece[,] pieces = null)
+        public GameManager(ChessBoard board, Piece[,] pieces = null)
         {
             Board = board;
             board.Interactable = false;
@@ -67,7 +67,7 @@ namespace Chess
             else
                 text = "Checkmate! " + (isWhite == GameResult.WhiteWin ? "White" : "Black") + " wins! " + message;
 
-            MessageBox.Show(text, "Game Over", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show(text, "GameManager Over", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
         public void Start()

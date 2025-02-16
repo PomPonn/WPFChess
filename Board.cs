@@ -48,7 +48,7 @@ namespace Chess
 
         public BoardRotation Rotation { get; set; } = BoardRotation.WhiteBottom;
         public bool Interactable { get; set; } = true;
-        public Game GameManager { get; set; }
+        public GameManager GameManager { get; set; }
         int BoardSize { get; set; }
 
         int TileSize => BoardSize / 8;

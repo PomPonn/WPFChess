@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 
 namespace Chess
 {
@@ -11,30 +10,25 @@ namespace Chess
         {
             InitializeComponent();
 
-            //ChessBoard board = new ChessBoard(this, cnv_boardWrapper, 640)
-            //{
-            //    Rotation = BoardRotation.WhiteBottom
-            //}
-            //;
+            ChessBoard board = new(this, cnv_boardWrapper, 640)
+            {
+                Rotation = BoardRotation.WhiteBottom
+            }
+            ;
 
-            //Game game = new Game(board);
+            GameManager game = new(board);
 
-            //// "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-            //// "k7/8/8/8/8/8/8/QK6 b - - 0 30"
-            //game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+            // "k7/8/8/8/8/8/8/QK6 b - - 0 30"
+            game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-            //game.Start();
+            game.Start();
 
-            ChessEngine engine = new ChessEngine();
+            //var test = EngineAPICLient.Request("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-            engine.Connect().Wait();
+            //test.Wait();
 
-            var options = new ChessEngine.SendOptions
-                ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
-            engine.SendPosition(options).Wait();
-
-            engine.GetResponse();
+            //var tt = 2;
         }
     }
 }
