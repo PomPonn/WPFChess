@@ -47,34 +47,37 @@ namespace Chess
             return false;
         }
 
-        private static bool VerifyCastlingRights(Piece king, GameState gameState, Position start, Position end)
+        private static bool VerifyCastlingRights(Piece king, FEN.Context gameContext, Move move)
         {
             if (king.Type != PieceType.King)
                 return false;
+
+            (Position start, Position end) = move;
 
             if (king.IsWhite)
             {
                 if (start.X == 4 && start.Y == 7)
                     if (end.X == 6)
-                        return gameState.FENContext.castlingRights.HasFlag(CastlingAbility.K);
+                        return gameContext.castlingRights.HasFlag(CastlingAbility.K);
                     else if (end.X == 2)
-                        return gameState.FENContext.castlingRights.HasFlag(CastlingAbility.Q);
+                        return gameContext.castlingRights.HasFlag(CastlingAbility.Q);
             }
             else
             {
                 if (start.X == 4 && start.Y == 0)
                     if (end.X == 6)
-                        return gameState.FENContext.castlingRights.HasFlag(CastlingAbility.k);
+                        return gameContext.castlingRights.HasFlag(CastlingAbility.k);
                     else if (end.X == 2)
-                        return gameState.FENContext.castlingRights.HasFlag(CastlingAbility.q);
+                        return gameContext.castlingRights.HasFlag(CastlingAbility.q);
             }
 
             return false;
         }
 
-        public static bool CheckMove(Piece[,] pieces, Position from, Position to, GameState gameState, out bool specialMove)
+        public static bool CheckMove(Piece[,] pieces, Move move, FEN.Context gameContext, out bool specialMove)
         {
             specialMove = false;
+            (Position from, Position to) = move;
 
             if (!from.InBounds() || !to.InBounds() ||
                 (pieces[to.Y, to.X] != null && pieces[from.Y, from.X].IsWhite == pieces[to.Y, to.X].IsWhite))
@@ -83,24 +86,26 @@ namespace Chess
             switch (pieces[from.Y, from.X].Type)
             {
                 case PieceType.Pawn:
-                    return CheckPawnMove(pieces, from, to, gameState.FENContext.EnPassantTarget, out specialMove);
+                    return CheckPawnMove(pieces, move, gameContext.EnPassantTarget, out specialMove);
                 case PieceType.Knight:
-                    return CheckKnightMove(from, to);
+                    return CheckKnightMove(move);
                 case PieceType.Bishop:
-                    return CheckBishopMove(pieces, from, to);
+                    return CheckBishopMove(pieces, move);
                 case PieceType.Rook:
-                    return CheckRookMove(pieces, from, to);
+                    return CheckRookMove(pieces, move);
                 case PieceType.Queen:
-                    return CheckQueenMove(pieces, from, to);
+                    return CheckQueenMove(pieces, move);
                 case PieceType.King:
-                    return CheckKingMove(pieces, gameState, from, to, out specialMove);
+                    return CheckKingMove(pieces, gameContext, move, out specialMove);
                 default:
                     return false;
             }
         }
 
-        public static bool CheckPawnMove(Piece[,] pieces, Position from, Position to, Position enPassantTarget, out bool enPassantCapture)
+        public static bool CheckPawnMove(Piece[,] pieces, Move move, Position? enPassantTarget, out bool enPassantCapture)
         {
+            (Position from, Position to) = move;
+
             bool isWhite = pieces[from.Y, from.X].IsWhite;
             enPassantCapture = false;
 
@@ -141,8 +146,10 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckKnightMove(Position from, Position to)
+        public static bool CheckKnightMove(Move move)
         {
+            (Position from, Position to) = move;
+
             if (Math.Abs(from.X - to.X) == 2 && Math.Abs(from.Y - to.Y) == 1)
                 return true;
 
@@ -152,8 +159,10 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckBishopMove(Piece[,] pieces, Position from, Position to)
+        public static bool CheckBishopMove(Piece[,] pieces, Move move)
         {
+            (Position from, Position to) = move;
+
             if (Math.Abs(from.X - to.X) == Math.Abs(from.Y - to.Y))
             {
                 int xDir = Math.Sign(to.X - from.X);
@@ -169,8 +178,10 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckRookMove(Piece[,] pieces, Position from, Position to)
+        public static bool CheckRookMove(Piece[,] pieces, Move move)
         {
+            (Position from, Position to) = move;
+
             if (from.X == to.X)
             {
                 int dir = Math.Sign(to.Y - from.Y);
@@ -197,14 +208,15 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckQueenMove(Piece[,] pieces, Position from, Position to)
+        public static bool CheckQueenMove(Piece[,] pieces, Move move)
         {
-            return CheckBishopMove(pieces, from, to) || CheckRookMove(pieces, from, to);
+            return CheckBishopMove(pieces, move) || CheckRookMove(pieces, move);
         }
 
-        public static bool CheckKingMove(Piece[,] pieces, GameState gameState, Position from, Position to, out bool castled)
+        public static bool CheckKingMove(Piece[,] pieces, FEN.Context gameContext, Move move, out bool castled)
         {
             castled = false;
+            (Position from, Position to) = move;
 
             // normal move
             if (Math.Abs(from.X - to.X) <= 1 && Math.Abs(from.Y - to.Y) <= 1)
@@ -216,7 +228,7 @@ namespace Chess
             {
                 Piece king = pieces[from.Y, from.X];
 
-                if (!VerifyCastlingRights(king, gameState, from, to))
+                if (!VerifyCastlingRights(king, gameContext, move))
                     return false;
 
                 int dir = Math.Sign(to.X - from.X);
@@ -236,7 +248,7 @@ namespace Chess
 
                         pieces[from.Y, i] = king;
 
-                        bool isChecked = KingChecked(pieces, gameState, new Position(from.Y, i));
+                        bool isChecked = KingChecked(pieces, gameContext, new Position(from.Y, i));
 
                         pieces[from.Y, i] = null;
 
@@ -254,7 +266,7 @@ namespace Chess
             return false;
         }
 
-        public static bool KingChecked(Piece[,] pieces, GameState gameState, Position kingPos)
+        public static bool KingChecked(Piece[,] pieces, FEN.Context gameContext, Position kingPos)
         {
             Piece king = pieces[kingPos.Y, kingPos.X];
 
@@ -268,7 +280,7 @@ namespace Chess
                 {
                     if (pieces[j, i] != null && pieces[j, i].IsWhite != isWhite)
                     {
-                        if (CheckMove(pieces, new Position(i, j), kingPos, gameState, out _))
+                        if (CheckMove(pieces, new Move(new Position(i, j), kingPos), gameContext, out _))
                         {
                             return true;
                         }
@@ -279,21 +291,21 @@ namespace Chess
             return false;
         }
 
-        public static bool KingChecked(Piece[,] pieces, GameState gameState, bool isWhite)
+        public static bool KingChecked(Piece[,] pieces, FEN.Context gameContext, bool isWhite)
         {
             Position kingPos = FindKing(pieces, isWhite);
 
-            return KingChecked(pieces, gameState, kingPos);
+            return KingChecked(pieces, gameContext, kingPos);
         }
 
-        public static bool Stalemate(Piece[,] pieces, GameState gameState, bool isWhite)
+        public static bool Stalemate(Piece[,] pieces, FEN.Context gameContext, bool isWhite)
         {
-            if (KingChecked(pieces, gameState, isWhite))
+            if (KingChecked(pieces, gameContext, isWhite))
                 return false;
 
             return !CheckTilesForEachPiece(pieces, isWhite, (startPos, testPos) =>
             {
-                bool moveValid = CheckMove(pieces, startPos, testPos, gameState, out _);
+                bool moveValid = CheckMove(pieces, new Move(startPos, testPos), gameContext, out _);
 
                 if (pieces[startPos.Y, startPos.X].Type == PieceType.King)
                 {
@@ -307,7 +319,7 @@ namespace Chess
                         pieces[tY, tX] = pieces[sY, sX];
                         pieces[sY, sX] = null;
 
-                        moveValid = !KingChecked(pieces, gameState, testPos);
+                        moveValid = !KingChecked(pieces, gameContext, testPos);
 
                         pieces[sY, sX] = pieces[tY, tX];
                         pieces[tY, tX] = piece;
@@ -321,16 +333,16 @@ namespace Chess
             });
         }
 
-        public static bool KingMated(Piece[,] pieces, GameState gameState, bool isWhite)
+        public static bool KingMated(Piece[,] pieces, FEN.Context gameContext, bool isWhite)
         {
             Position kingPos = FindKing(pieces, isWhite);
 
-            if (!KingChecked(pieces, gameState, kingPos))
+            if (!KingChecked(pieces, gameContext, kingPos))
                 return false;
 
             return !CheckTilesForEachPiece(pieces, isWhite, (startPos, testPos) =>
             {
-                if (CheckMove(pieces, startPos, testPos, gameState, out _))
+                if (CheckMove(pieces, new Move(startPos, testPos), gameContext, out _))
                 {
                     (int sX, int sY) = startPos;
                     (int tX, int tY) = testPos;
@@ -341,8 +353,8 @@ namespace Chess
                     pieces[sY, sX] = null;
 
                     bool isChecked = startPos == kingPos ?
-                        KingChecked(pieces, gameState, testPos) :
-                        KingChecked(pieces, gameState, kingPos);
+                        KingChecked(pieces, gameContext, testPos) :
+                        KingChecked(pieces, gameContext, kingPos);
 
                     pieces[sY, sX] = pieces[tY, tX];
                     pieces[tY, tX] = piece;

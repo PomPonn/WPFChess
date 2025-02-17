@@ -138,14 +138,14 @@ namespace Chess
             if (!Interactable) return;
 
             Point p = e.GetPosition(drawCanvas);
-            Position pos = Position.FromPoint(p, TileSize);
+            Position pos = Position.From(p, TileSize);
 
             if (!pos.InBounds()) return;
 
             if (pieceSelected && selectedPieceStartPos != pos)
             {
                 pieceSelected = false;
-                if (GameManager.TryMove(selectedPieceStartPos, pos, Rotation))
+                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos), Rotation))
                 {
                     UnselectPiece();
                 }
@@ -173,7 +173,7 @@ namespace Chess
             if (!Interactable || selectedPiece == null) return;
 
             Point p = e.GetPosition(drawCanvas);
-            Position pos = Position.FromPoint(p, TileSize);
+            Position pos = Position.From(p, TileSize);
 
             if (pos == selectedPieceStartPos)
             {
@@ -191,7 +191,7 @@ namespace Chess
             }
             else if (pieceDragged)
             {
-                if (GameManager.TryMove(selectedPieceStartPos, pos, Rotation))
+                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos), Rotation))
                 {
                     UnselectPiece();
                     pieceSelected = false;
@@ -226,8 +226,10 @@ namespace Chess
             Canvas.SetTop(selectedPiece, p.Y - (TileSize / 2));
         }
 
-        public bool MovePiece(Position from, Position to)
+        public bool MovePiece(Move move)
         {
+            (Position from, Position to) = move;
+
             if (pieceImages[from.Y, from.X] == null)
             {
                 return false;

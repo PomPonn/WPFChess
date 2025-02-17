@@ -21,13 +21,13 @@ namespace Chess
             Y = 8 - rank;
         }
 
-        public void Deconstruct(out int x, out int y)
+        public readonly void Deconstruct(out int x, out int y)
         {
             x = X;
             y = Y;
         }
 
-        public bool InBounds()
+        public readonly bool InBounds()
         {
             return X >= 0 && X < 8 && Y >= 0 && Y < 8;
         }
@@ -59,9 +59,14 @@ namespace Chess
             return new Position(7 - x, 7 - y);
         }
 
-        public static Position FromPoint(Point point, int tileSize)
+        public static Position From(Point point, int tileSize)
         {
             return new Position((int)Math.Floor(point.X / tileSize), (int)Math.Floor(point.Y / tileSize));
+        }
+
+        public static Position From(string position)
+        {
+            return new Position(position[0], int.Parse(position[1].ToString()));
         }
 
         public static bool operator ==(Position a, Position b)
@@ -74,7 +79,7 @@ namespace Chess
             return a.X != b.X || a.Y != b.Y;
         }
 
-        public override bool Equals(object obj)
+        public override readonly bool Equals(object obj)
         {
             if (!(obj is Position))
                 return false;
@@ -82,14 +87,14 @@ namespace Chess
             return this == (Position)obj;
         }
 
-        public override int GetHashCode()
+        public override readonly int GetHashCode()
         {
             return X.GetHashCode() ^ Y.GetHashCode();
         }
 
-        public override string ToString()
+        public override readonly string ToString()
         {
-            return $"{(char)(Y + 'a')}{8 - X}";
+            return $"{(char)(X + 'a')}{8 - Y}";
         }
     }
 }

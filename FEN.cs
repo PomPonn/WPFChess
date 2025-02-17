@@ -9,20 +9,29 @@ namespace Chess
         K = 0b1000,
         Q = 0b0100,
         k = 0b0010,
-        q = 0b0001
+        q = 0b0001,
     }
 
-    public struct CastlingBitField
+    public struct CastlingBitField(int value)
     {
-        public int Value { get; private set; }
+        public int Value { get; private set; } = value;
 
-
-        public CastlingBitField(int value)
+        public override readonly string ToString()
         {
-            Value = value;
+            string res = "";
+
+            foreach (string name in Enum.GetNames(typeof(CastlingAbility)))
+            {
+                CastlingAbility ability = (CastlingAbility)Enum.Parse(typeof(CastlingAbility), name);
+
+                if (HasFlag(ability))
+                    res += name;
+            }
+
+            return String.IsNullOrEmpty(res) ? "-" : res;
         }
 
-        public bool HasFlag(CastlingAbility flag)
+        public readonly bool HasFlag(CastlingAbility flag)
         {
             return (Value & (int)flag) != 0;
         }
@@ -44,7 +53,7 @@ namespace Chess
         {
             public bool IsWhiteToMove { get; set; }
             public CastlingBitField castlingRights;
-            public Position EnPassantTarget { get; set; }
+            public Position? EnPassantTarget { get; set; }
             public int HalfMoveClock { get; set; }
             public int FullMoveCounter { get; set; }
         }
@@ -54,7 +63,6 @@ namespace Chess
             public Piece[,] board;
             public Context context;
         }
-
 
         private static void ParseRowPlacement(Piece[,] table, int rowNumber, string placementStr)
         {
@@ -74,9 +82,69 @@ namespace Chess
             }
         }
 
+        public static string Build(Piece[,] table, Context context)
+        {
+            // board
+
+            string output = "";
+            int skipCount = 0;
+
+            void ApplySkip()
+            {
+                if (skipCount == 0) return;
+
+                output += skipCount;
+                skipCount = 0;
+            }
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    Piece piece = table[i, j];
+
+                    if (piece != null)
+                    {
+                        ApplySkip();
+                        output += piece.IsWhite ? char.ToUpper((char)piece.Type) : (char)piece.Type;
+                    }
+                    else
+                    {
+                        skipCount++;
+                    }
+                }
+
+                ApplySkip();
+
+                if (i != 7)
+                    output += '/';
+            }
+            output += ' ';
+
+            //"rn1q1rk1/pp2b1pp/2p2n2/3p1pB1/3P4/1QP2N2/PP1N1PPP/R4RK1 b - - 1 11";
+            //"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+            // side to move
+            output += context.IsWhiteToMove ? "w " : "b ";
+
+            // castling rights
+            output += context.castlingRights.ToString() + " ";
+
+            // en passant target
+            output += context.EnPassantTarget != null ? context.EnPassantTarget + " " : "- ";
+
+            // halfmove clock
+            output += context.HalfMoveClock + " ";
+
+            // fullmove clock
+            output += context.FullMoveCounter;
+
+            return output;
+        }
+
         public static Result Parse(string input)
         {
-            Result result = new Result();
+            Result result = new();
 
             for (int i = 0; i < input.Length; i++)
             {
@@ -107,7 +175,7 @@ namespace Chess
                     castlingRights = new CastlingBitField(
                         records[2] == "-" ? 0 : records[2].Aggregate(0, (acc, c) => acc | (int)Enum.Parse(typeof(CastlingAbility), c.ToString()))
                     ),
-                    EnPassantTarget = records[3] == "-" ? new Position(-1, -1) : new Position(records[3][0], int.Parse(records[3][1].ToString())),
+                    EnPassantTarget = records[3] == "-" ? null : new Position(records[3][0], int.Parse(records[3][1].ToString())),
                     HalfMoveClock = int.Parse(records[4]),
                     FullMoveCounter = int.Parse(records[5])
                 };

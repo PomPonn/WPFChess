@@ -10,36 +10,23 @@
         Rook = 'r'
     }
 
-    public class Piece
+    public class Piece(PieceType type, bool isWhite)
     {
-        public PieceType Type { get; }
-        public bool IsWhite { get; }
+        public PieceType Type { get; } = type;
+        public bool IsWhite { get; } = isWhite;
         public int Value
         {
             get
             {
-                switch (Type)
+                return Type switch
                 {
-                    case PieceType.Pawn:
-                        return 1;
-                    case PieceType.Knight:
-                    case PieceType.Bishop:
-                        return 3;
-                    case PieceType.Rook:
-                        return 5;
-                    case PieceType.Queen:
-                        return 9;
-                    case PieceType.King:
-                    default:
-                        return 0;
-                }
+                    PieceType.Pawn => 1,
+                    PieceType.Knight or PieceType.Bishop => 3,
+                    PieceType.Rook => 5,
+                    PieceType.Queen => 9,
+                    _ => 0,
+                };
             }
-        }
-
-        public Piece(PieceType type, bool isWhite)
-        {
-            Type = type;
-            IsWhite = isWhite;
         }
 
         public override string ToString()

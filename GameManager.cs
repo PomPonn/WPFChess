@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Media;
+using System.Threading.Tasks;
 using System.Windows;
 
 namespace Chess
 {
-    public struct GameState
-    {
-        public FEN.Context FENContext;
-    }
-
     public enum GameResult
     {
         WhiteWin,
         BlackWin,
         Draw
+    }
+
+    public enum GameType
+    {
+        Local,
+        AgainstBot,
     }
 
     public class GameManager
@@ -23,15 +25,25 @@ namespace Chess
         static readonly SoundPlayer checkSound = new("audio/piece_check.wav");
         static readonly int MIN_MATERIAL = 5;
 
-        public Piece[,] Pieces = null;
-        private Position lastOddBlackMovePos;
-        private Position lastOddWhiteMovePos;
-        public GameState gameState;
-        private int whiteMaterial = 0;
-        private int blackMaterial = 0;
-        private int repetitionCounter;
+
+        FEN.Context gameContext;
+        Position? lastOddBlackMovePos;
+        Position? lastOddWhiteMovePos;
+        GameType gameType;
+
+        int repetitionCounter;
+        int whiteMaterial = 0;
+        int blackMaterial = 0;
+        int engineDepth = 12;
+
+        bool gameRunning;
+        bool isClientWhiteSide = true;
+        private bool CanClientMove
+    => gameType != GameType.Local ? gameContext.IsWhiteToMove == isClientWhiteSide : true;
 
         public ChessBoard Board { get; set; }
+        public Piece[,] Pieces = null;
+
 
 
         public GameManager(ChessBoard board, Piece[,] pieces = null)
@@ -40,7 +52,7 @@ namespace Chess
             board.Interactable = false;
             board.GameManager = this;
 
-            gameState.FENContext = new FEN.Context
+            gameContext = new FEN.Context
             {
                 castlingRights = new CastlingBitField(0b1111),
                 IsWhiteToMove = true,
@@ -59,6 +71,7 @@ namespace Chess
         private void GameOver(GameResult isWhite, string message = "")
         {
             Board.Interactable = false;
+            gameRunning = false;
 
             string text;
 
@@ -70,17 +83,36 @@ namespace Chess
             MessageBox.Show(text, "GameManager Over", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
-        public void Start()
+        private void Start()
         {
             if (Pieces == null)
                 throw new InvalidOperationException("Pieces not loaded.");
+            if (gameRunning)
+                throw new InvalidOperationException("Game is already running.");
 
-            lastOddBlackMovePos = new Position(-1, -1);
-            lastOddWhiteMovePos = new Position(-1, -1);
+            lastOddBlackMovePos = null;
+            lastOddWhiteMovePos = null;
 
             repetitionCounter = 0;
 
+            gameRunning = true;
             Board.Interactable = true;
+        }
+
+        public void StartLocalGame()
+        {
+            gameType = GameType.Local;
+
+            Start();
+        }
+
+        public void StartGameAgainstBot(int botEngineDepth, bool isClientWhiteSide)
+        {
+            this.isClientWhiteSide = isClientWhiteSide;
+            engineDepth = botEngineDepth;
+            gameType = GameType.AgainstBot;
+
+            Start();
         }
 
         public void LoadFENPosition(string fen)
@@ -89,20 +121,22 @@ namespace Chess
 
             Pieces = res.board;
 
-            gameState.FENContext = res.context;
+            gameContext = res.context;
 
             Board.InitPosition(Pieces);
         }
 
-        private bool AlliedKingCheck(Position start, Position end, Piece piece)
+        private bool AlliedKingCheck(Move move, Piece piece)
         {
+            (Position start, Position end) = move;
+
             Piece temp = Pieces[end.Y, end.X];
 
             Pieces[end.Y, end.X] = piece;
             Pieces[start.Y, start.X] = null;
 
             // check if allied king is checked after the move
-            bool isKingChecked = MoveValidator.KingChecked(Pieces, gameState, piece.IsWhite);
+            bool isKingChecked = MoveValidator.KingChecked(Pieces, gameContext, piece.IsWhite);
 
             // revert move
             Pieces[end.Y, end.X] = temp;
@@ -111,11 +145,11 @@ namespace Chess
             return isKingChecked;
         }
 
-        private void HandleRepetitionCounter(Position start, Position end, Piece piece)
+        private void HandleRepetitionCounter(Move move, Piece piece)
         {
-            if (gameState.FENContext.FullMoveCounter % 2 == 0)
+            if (gameContext.FullMoveCounter % 2 == 0)
             {
-                if ((piece.IsWhite && lastOddWhiteMovePos == end) || (!piece.IsWhite && lastOddBlackMovePos == end))
+                if ((piece.IsWhite && lastOddWhiteMovePos == move.End) || (!piece.IsWhite && lastOddBlackMovePos == move.End))
                 {
                     repetitionCounter++;
                 }
@@ -127,9 +161,9 @@ namespace Chess
             else
             {
                 if (piece.IsWhite)
-                    lastOddWhiteMovePos = start;
+                    lastOddWhiteMovePos = move.Start;
                 else
-                    lastOddBlackMovePos = start;
+                    lastOddBlackMovePos = move.Start;
             }
         }
 
@@ -137,31 +171,31 @@ namespace Chess
         {
             Piece piece = Pieces[moveStart.Y, moveStart.X];
 
-            gameState.FENContext.IsWhiteToMove = !gameState.FENContext.IsWhiteToMove;
+            gameContext.IsWhiteToMove = !gameContext.IsWhiteToMove;
 
             // increase move counters
-            if (gameState.FENContext.IsWhiteToMove)
+            if (gameContext.IsWhiteToMove)
             {
-                gameState.FENContext.FullMoveCounter++;
-                gameState.FENContext.HalfMoveClock++;
+                gameContext.FullMoveCounter++;
+                gameContext.HalfMoveClock++;
             }
 
             // reset half move clock
             if (piece.Type == PieceType.Pawn || Pieces[moveEnd.Y, moveEnd.X] != null)
-                gameState.FENContext.HalfMoveClock = 0;
+                gameContext.HalfMoveClock = 0;
 
             // refresh castling rights
             if (piece.Type == PieceType.King)
             {
                 if (piece.IsWhite)
                 {
-                    gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.K);
-                    gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.Q);
+                    gameContext.castlingRights.UnsetFlag(CastlingAbility.K);
+                    gameContext.castlingRights.UnsetFlag(CastlingAbility.Q);
                 }
                 else
                 {
-                    gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.k);
-                    gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.q);
+                    gameContext.castlingRights.UnsetFlag(CastlingAbility.k);
+                    gameContext.castlingRights.UnsetFlag(CastlingAbility.q);
                 }
             }
             else if (piece.Type == PieceType.Rook)
@@ -169,24 +203,24 @@ namespace Chess
                 if (piece.IsWhite && moveStart.Y == 7)
                 {
                     if (moveStart.X == 0)
-                        gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.Q);
+                        gameContext.castlingRights.UnsetFlag(CastlingAbility.Q);
                     else if (moveStart.X == 7)
-                        gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.K);
+                        gameContext.castlingRights.UnsetFlag(CastlingAbility.K);
                 }
                 else if (moveStart.Y == 0)
                 {
                     if (moveStart.X == 0)
-                        gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.q);
+                        gameContext.castlingRights.UnsetFlag(CastlingAbility.q);
                     else if (moveStart.X == 7)
-                        gameState.FENContext.castlingRights.UnsetFlag(CastlingAbility.k);
+                        gameContext.castlingRights.UnsetFlag(CastlingAbility.k);
                 }
             }
 
             // set en passant target
             if (piece.Type == PieceType.Pawn && Math.Abs(moveStart.Y - moveEnd.Y) == 2)
-                gameState.FENContext.EnPassantTarget = new Position(moveEnd.X, (moveStart.Y + moveEnd.Y) / 2);
+                gameContext.EnPassantTarget = new Position(moveEnd.X, (moveStart.Y + moveEnd.Y) / 2);
             else
-                gameState.FENContext.EnPassantTarget = new Position(-1, -1);
+                gameContext.EnPassantTarget = new Position(-1, -1);
         }
 
         private bool PawnExists(bool isWhite)
@@ -219,27 +253,53 @@ namespace Chess
             return (isWhite ? whiteMaterial : blackMaterial) >= MIN_MATERIAL || PawnExists(isWhite);
         }
 
-        public bool TryMove(Position start, Position end, BoardRotation rotation)
+        private async Task RequestBotMove()
         {
+            EngineAPICLient.APIResponse response;
+
+            try
+            {
+                response = await EngineAPICLient.Request(FEN.Build(Pieces, gameContext), engineDepth);
+            }
+            catch (Exception)
+            {
+                MessageBox.Show("Nie udało się połączyć z botem", "błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            Move bestMove = response.ParseBestMove().bestMove;
+            TryMove(bestMove, Board.Rotation);
+        }
+
+        private void MakeMove(Move move)
+        {
+
+        }
+
+        public bool TryMove(Move move, BoardRotation rotation)
+        {
+            if (!CanClientMove) return false;
+
+            (Position start, Position end) = move;
+
+            Piece piece = Pieces[start.Y, start.X];
+            if (piece == null || gameContext.IsWhiteToMove != piece.IsWhite)
+                return false;
+
             start.ApplyRotation(rotation);
             end.ApplyRotation(rotation);
             BoardRotation reversedRotation = BoardRotation.WhiteBottom == rotation ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
 
-            Piece piece = Pieces[start.Y, start.X];
-
-            if (piece == null || gameState.FENContext.IsWhiteToMove != piece.IsWhite)
+            if (!MoveValidator.CheckMove(Pieces, move, gameContext, out bool specialMove))
                 return false;
 
-            if (!MoveValidator.CheckMove(Pieces, start, end, gameState, out bool specialMove))
-                return false;
+            if (AlliedKingCheck(move, piece)) return false;
 
-            if (AlliedKingCheck(start, end, piece)) return false;
-
-            Position originalStart = Position.ApplyRotation(start, rotation);
-            Position originalEnd = Position.ApplyRotation(end, rotation);
+            Position originalStart = Position.ApplyRotation(start, reversedRotation);
+            Position originalEnd = Position.ApplyRotation(end, reversedRotation);
 
             // move piece on the board
-            if (!Board.MovePiece(originalStart, originalEnd))
+            if (!Board.MovePiece(move))
             {
                 // board and gameController are desynced
                 // sync it back?
@@ -247,6 +307,12 @@ namespace Chess
             }
 
             UpdateGameState(start, end);
+
+            // ask bot to move
+            if (gameType == GameType.AgainstBot)
+            {
+                _ = RequestBotMove();
+            }
 
             // en passant capture
             if (piece.Type == PieceType.Pawn && specialMove)
@@ -268,8 +334,10 @@ namespace Chess
                 Pieces[rookY, castledRookX] = rook;
 
                 Board.MovePiece(
-                    Position.ApplyRotation(rookX, rookY, rotation),
-                    Position.ApplyRotation(castledRookX, rookY, rotation)
+                    new Move(
+                        Position.ApplyRotation(rookX, rookY, rotation),
+                        Position.ApplyRotation(castledRookX, rookY, rotation)
+                    )
                 );
             }
 
@@ -286,9 +354,9 @@ namespace Chess
             }
 
             // update repetition counter
-            HandleRepetitionCounter(start, end, piece);
+            HandleRepetitionCounter(move, piece);
 
-            bool enenyKingChecked = MoveValidator.KingChecked(Pieces, gameState, !piece.IsWhite);
+            bool enenyKingChecked = MoveValidator.KingChecked(Pieces, gameContext, !piece.IsWhite);
 
             if (enenyKingChecked)
                 checkSound.Play();
@@ -300,7 +368,7 @@ namespace Chess
             CountMaterial();
 
             // win by mate
-            if (MoveValidator.KingMated(Pieces, gameState, !piece.IsWhite))
+            if (MoveValidator.KingMated(Pieces, gameContext, !piece.IsWhite))
             {
                 GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
             }
@@ -315,12 +383,12 @@ namespace Chess
                 GameOver(GameResult.Draw, "By repetition");
             }
             // 50 moves draw
-            else if (gameState.FENContext.HalfMoveClock == 50)
+            else if (gameContext.HalfMoveClock == 50)
             {
                 GameOver(GameResult.Draw, "50 passive moves");
             }
             // Stalemate draw
-            else if (MoveValidator.Stalemate(Pieces, gameState, !piece.IsWhite))
+            else if (MoveValidator.Stalemate(Pieces, gameContext, !piece.IsWhite))
             {
                 GameOver(GameResult.Draw, "Stalemate");
             }
