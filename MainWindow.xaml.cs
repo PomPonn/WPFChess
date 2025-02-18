@@ -22,7 +22,7 @@ namespace Chess
             // "k7/8/8/8/8/8/8/QK6 b - - 0 30"
             game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-            game.StartGameAgainstBot(4, true);
+            game.StartGameAgainstBot(1, true);
             //game.StartLocalGame();
         }
     }

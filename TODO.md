@@ -1,5 +1,4 @@
-- sounds sometimes don't work
-- chess AI
+- fix board rotation issues (specyficaly the ApplyRotation function.)
 - add pgn support
 ######
 - extended pawn succession

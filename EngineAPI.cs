@@ -20,10 +20,10 @@ namespace Chess
             public float? Evaluation { get; set; }
             public int? Mate { get; set; }
 
-            public readonly (Move bestMove, Move ponder) ParseBestMove()
+            public readonly (Move bestMove, Move? ponder) ParseBestMove()
             {
                 string[] parts = BestMove.Split(" ");
-                return (new Move(parts[1]), new Move(parts[3]));
+                return (new Move(parts[1]), parts.Length == 4 ? new Move(parts[3]) : null);
             }
         }
 
