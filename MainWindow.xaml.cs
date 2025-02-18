@@ -1,5 +1,4 @@
-﻿using System.Threading.Tasks;
-using System.Windows;
+﻿using System.Windows;
 
 namespace Chess
 {
@@ -13,7 +12,7 @@ namespace Chess
 
             ChessBoard board = new(this, cnv_boardWrapper, 640)
             {
-                Rotation = BoardRotation.BlackBottom
+                Rotation = BoardRotation.BlackBottom,
             }
             ;
 
@@ -23,7 +22,7 @@ namespace Chess
             // "k7/8/8/8/8/8/8/QK6 b - - 0 30"
             game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-            game.StartGameAgainstBot(12, true);
+            game.StartGameAgainstBot(12, false);
             //game.StartLocalGame();
         }
     }

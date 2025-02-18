@@ -145,7 +145,7 @@ namespace Chess
             if (pieceSelected && selectedPieceStartPos != pos)
             {
                 pieceSelected = false;
-                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos), Rotation))
+                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos)))
                 {
                     UnselectPiece();
                 }
@@ -191,7 +191,7 @@ namespace Chess
             }
             else if (pieceDragged)
             {
-                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos), Rotation))
+                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos)))
                 {
                     UnselectPiece();
                     pieceSelected = false;

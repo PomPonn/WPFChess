@@ -14,16 +14,16 @@ namespace Chess
         public struct APIResponse
         {
             public bool Success { get; set; }
-            public string Data { get; set; }
+            public string Error { get; set; }
             public string BestMove { get; set; }
+            public string Continuation { get; set; }
             public float? Evaluation { get; set; }
             public int? Mate { get; set; }
-            public string Continuation { get; set; }
 
             public readonly (Move bestMove, Move ponder) ParseBestMove()
             {
                 string[] parts = BestMove.Split(" ");
-                return (Move.FromString(parts[1]), Move.FromString(parts[3]));
+                return (new Move(parts[1]), new Move(parts[3]));
             }
         }
 
@@ -36,7 +36,7 @@ namespace Chess
 
             var apiAnswer = await response.Content.ReadFromJsonAsync<APIResponse>();
             if (!apiAnswer.Success)
-                throw new HttpRequestException("Invalid chess engine api request");
+                throw new HttpRequestException($"Invalid chess engine api request - {apiAnswer.Error}");
 
             return apiAnswer;
         }

@@ -113,6 +113,8 @@ namespace Chess
             gameType = GameType.AgainstBot;
 
             Start();
+
+            _ = RequestBotMove();
         }
 
         public void LoadFENPosition(string fen)
@@ -220,7 +222,7 @@ namespace Chess
             if (piece.Type == PieceType.Pawn && Math.Abs(moveStart.Y - moveEnd.Y) == 2)
                 gameContext.EnPassantTarget = new Position(moveEnd.X, (moveStart.Y + moveEnd.Y) / 2);
             else
-                gameContext.EnPassantTarget = new Position(-1, -1);
+                gameContext.EnPassantTarget = null;
         }
 
         private bool PawnExists(bool isWhite)
@@ -261,42 +263,25 @@ namespace Chess
             {
                 response = await EngineAPICLient.Request(FEN.Build(Pieces, gameContext), engineDepth);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                MessageBox.Show("Nie udało się połączyć z botem", "błąd", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"Nie udało się połączyć z botem:\n{e.Message}", "błąd", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             Move bestMove = response.ParseBestMove().bestMove;
-            TryMove(bestMove, Board.Rotation);
+
+            MakeMove(bestMove, false);
         }
 
-        private void MakeMove(Move move)
+        private void MakeMove(Move move, bool specialMove)
         {
-
-        }
-
-        public bool TryMove(Move move, BoardRotation rotation)
-        {
-            if (!CanClientMove) return false;
-
+            move.ApplyRotation(Board.Rotation);
             (Position start, Position end) = move;
-
-            Piece piece = Pieces[start.Y, start.X];
-            if (piece == null || gameContext.IsWhiteToMove != piece.IsWhite)
-                return false;
-
-            start.ApplyRotation(rotation);
-            end.ApplyRotation(rotation);
-            BoardRotation reversedRotation = BoardRotation.WhiteBottom == rotation ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
-
-            if (!MoveValidator.CheckMove(Pieces, move, gameContext, out bool specialMove))
-                return false;
-
-            if (AlliedKingCheck(move, piece)) return false;
-
-            Position originalStart = Position.ApplyRotation(start, reversedRotation);
+            BoardRotation reversedRotation = BoardRotation.WhiteBottom == Board.Rotation ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
+            
             Position originalEnd = Position.ApplyRotation(end, reversedRotation);
+            Piece piece = Pieces[start.Y, start.X];
 
             // move piece on the board
             if (!Board.MovePiece(move))
@@ -307,12 +292,6 @@ namespace Chess
             }
 
             UpdateGameState(start, end);
-
-            // ask bot to move
-            if (gameType == GameType.AgainstBot)
-            {
-                _ = RequestBotMove();
-            }
 
             // en passant capture
             if (piece.Type == PieceType.Pawn && specialMove)
@@ -332,11 +311,10 @@ namespace Chess
                 int castledRookX = end.X - (end.X == 6 ? 1 : -1);
                 Pieces[rookY, rookX] = null;
                 Pieces[rookY, castledRookX] = rook;
-
                 Board.MovePiece(
                     new Move(
-                        Position.ApplyRotation(rookX, rookY, rotation),
-                        Position.ApplyRotation(castledRookX, rookY, rotation)
+                        Position.ApplyRotation(rookX, rookY, Board.Rotation),
+                        Position.ApplyRotation(castledRookX, rookY, Board.Rotation)
                     )
                 );
             }
@@ -365,15 +343,19 @@ namespace Chess
             else
                 moveSound.Play();
 
+        }
+
+        private void CheckForGameEnd(Piece movedPiece)
+        {
             CountMaterial();
 
             // win by mate
-            if (MoveValidator.KingMated(Pieces, gameContext, !piece.IsWhite))
+            if (MoveValidator.KingMated(Pieces, gameContext, !movedPiece.IsWhite))
             {
-                GameOver(piece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
+                GameOver(movedPiece.IsWhite ? GameResult.WhiteWin : GameResult.BlackWin);
             }
             // insufficient material
-            else if (!CheckMaterial(piece.IsWhite) && !CheckMaterial(!piece.IsWhite))
+            else if (!CheckMaterial(movedPiece.IsWhite) && !CheckMaterial(!movedPiece.IsWhite))
             {
                 GameOver(GameResult.Draw, "Insufficient Material");
             }
@@ -388,9 +370,36 @@ namespace Chess
                 GameOver(GameResult.Draw, "50 passive moves");
             }
             // Stalemate draw
-            else if (MoveValidator.Stalemate(Pieces, gameContext, !piece.IsWhite))
+            else if (MoveValidator.Stalemate(Pieces, gameContext, !movedPiece.IsWhite))
             {
                 GameOver(GameResult.Draw, "Stalemate");
+            }
+
+        }
+
+        public bool TryMove(Move move)
+        {
+            if (!CanClientMove) return false;
+
+            move.ApplyRotation(Board.Rotation);
+            Piece piece = Pieces[move.Start.Y, move.Start.X];
+
+            if (piece == null || gameContext.IsWhiteToMove != piece.IsWhite)
+                return false;
+
+            if (!MoveValidator.CheckMove(Pieces, move, gameContext, out bool specialMove))
+                return false;
+
+            if (AlliedKingCheck(move, piece)) return false;
+
+            MakeMove(move, specialMove);
+
+            CheckForGameEnd(piece);
+
+            // ask bot to move
+            if (gameType == GameType.AgainstBot)
+            {
+                _ = RequestBotMove();
             }
 
             return true;

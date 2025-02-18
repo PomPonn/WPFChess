@@ -17,8 +17,14 @@ namespace Chess
 
         public Position(char file, int rank)
         {
-            X = file - 'h';
+            X = file - 'a';
             Y = 8 - rank;
+        }
+
+        public Position(string position)
+        {
+            X = position[0] - 'a';
+            Y = 8 - int.Parse(position[1].ToString());
         }
 
         public readonly void Deconstruct(out int x, out int y)
@@ -62,11 +68,6 @@ namespace Chess
         public static Position From(Point point, int tileSize)
         {
             return new Position((int)Math.Floor(point.X / tileSize), (int)Math.Floor(point.Y / tileSize));
-        }
-
-        public static Position From(string position)
-        {
-            return new Position(position[0], int.Parse(position[1].ToString()));
         }
 
         public static bool operator ==(Position a, Position b)
