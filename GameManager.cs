@@ -114,7 +114,8 @@ namespace Chess
 
             Start();
 
-            _ = RequestBotMove();
+            if (!isClientWhiteSide)
+                _ = RequestBotMove();
         }
 
         public void LoadFENPosition(string fen)
@@ -271,7 +272,8 @@ namespace Chess
 
             Move bestMove = response.ParseBestMove().bestMove;
 
-            MakeMove(bestMove, false);
+            MoveValidator.CheckMove(Pieces, bestMove, gameContext, out bool specialMove);
+            MakeMove(bestMove, specialMove);
         }
 
         private void MakeMove(Move move, bool specialMove)
