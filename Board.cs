@@ -76,11 +76,6 @@ namespace Chess
             Canvas.SetZIndex(boardImage, -10);
         }
 
-        private int ProjectToRotation(int x)
-        {
-            return Rotation == BoardRotation.WhiteBottom ? x : 7 - x;
-        }
-
         private void SetImagePosition(Image obj, Position offset)
         {
             Canvas.SetTop(obj, offset.Y * TileSize);
@@ -145,7 +140,7 @@ namespace Chess
             if (pieceSelected && selectedPieceStartPos != pos)
             {
                 pieceSelected = false;
-                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos)))
+                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos, Rotation)))
                 {
                     UnselectPiece();
                 }
@@ -191,7 +186,7 @@ namespace Chess
             }
             else if (pieceDragged)
             {
-                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos)))
+                if (GameManager.TryMove(new Move(selectedPieceStartPos, pos, Rotation)))
                 {
                     UnselectPiece();
                     pieceSelected = false;
@@ -228,6 +223,9 @@ namespace Chess
 
         public bool MovePiece(Move move)
         {
+            if (Rotation == BoardRotation.BlackBottom)
+                move.Rotate();
+
             (Position from, Position to) = move;
 
             if (pieceImages[from.Y, from.X] == null)
@@ -249,6 +247,9 @@ namespace Chess
 
         public void ReplacePiece(Position pos, Piece piece)
         {
+            if (Rotation == BoardRotation.BlackBottom)
+                pos.Rotate();
+
             if (pieceImages[pos.Y, pos.X] != null)
             {
                 drawCanvas.Children.Remove(pieceImages[pos.Y, pos.X]);
@@ -266,6 +267,9 @@ namespace Chess
 
         public void RemovePiece(Position pos)
         {
+            if (Rotation == BoardRotation.BlackBottom)
+                pos.Rotate();
+
             if (pieceImages[pos.Y, pos.X] == null) return;
 
             drawCanvas.Children.Remove(pieceImages[pos.Y, pos.X]);
@@ -282,8 +286,8 @@ namespace Chess
             {
                 for (int j = 0; j < 8; j++)
                 {
-                    int x = ProjectToRotation(i);
-                    int y = ProjectToRotation(j);
+                    int x = Position.AlignToRotation(i, Rotation);
+                    int y = Position.AlignToRotation(j, Rotation);
 
                     if (board[y, x] == null)
                     {

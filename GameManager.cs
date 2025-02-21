@@ -278,11 +278,8 @@ namespace Chess
 
         private void MakeMove(Move move, bool specialMove)
         {
-            move.ApplyRotation(Board.Rotation);
             (Position start, Position end) = move;
-            BoardRotation reversedRotation = BoardRotation.WhiteBottom == Board.Rotation ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
-            
-            Position originalEnd = Position.ApplyRotation(end, reversedRotation);
+
             Piece piece = Pieces[start.Y, start.X];
 
             // move piece on the board
@@ -298,10 +295,10 @@ namespace Chess
             // en passant capture
             if (piece.Type == PieceType.Pawn && specialMove)
             {
-                int epY = end.Y + (piece.IsWhite ? 1 : -1);
+                int targetY = end.Y + (piece.IsWhite ? 1 : -1);
 
-                Board.RemovePiece(new Position(originalEnd.X, Position.ApplyRotation(epY, reversedRotation)));
-                Pieces[epY, end.X] = null;
+                Board.RemovePiece(new Position(end.X, targetY));
+                Pieces[targetY, end.X] = null;
             }
             // castling
             else if (piece.Type == PieceType.King && specialMove)
@@ -313,10 +310,11 @@ namespace Chess
                 int castledRookX = end.X - (end.X == 6 ? 1 : -1);
                 Pieces[rookY, rookX] = null;
                 Pieces[rookY, castledRookX] = rook;
+
                 Board.MovePiece(
                     new Move(
-                        Position.ApplyRotation(rookX, rookY, Board.Rotation),
-                        Position.ApplyRotation(castledRookX, rookY, Board.Rotation)
+                        new Position(rookX, rookY),
+                        new Position(castledRookX, rookY)
                     )
                 );
             }
@@ -330,7 +328,7 @@ namespace Chess
             if (piece.Type == PieceType.Pawn && (end.Y == 0 || end.Y == 7))
             {
                 Pieces[end.Y, end.X] = new Piece(PieceType.Queen, piece.IsWhite);
-                Board.ReplacePiece(originalEnd, Pieces[end.Y, end.X]);
+                Board.ReplacePiece(end, Pieces[end.Y, end.X]);
             }
 
             // update repetition counter
@@ -345,6 +343,7 @@ namespace Chess
             else
                 moveSound.Play();
 
+            CheckForGameEnd(piece);
         }
 
         private void CheckForGameEnd(Piece movedPiece)
@@ -383,7 +382,6 @@ namespace Chess
         {
             if (!CanClientMove) return false;
 
-            move.ApplyRotation(Board.Rotation);
             Piece piece = Pieces[move.Start.Y, move.Start.X];
 
             if (piece == null || gameContext.IsWhiteToMove != piece.IsWhite)
@@ -395,8 +393,6 @@ namespace Chess
             if (AlliedKingCheck(move, piece)) return false;
 
             MakeMove(move, specialMove);
-
-            CheckForGameEnd(piece);
 
             // ask bot to move
             if (gameType == GameType.AgainstBot)

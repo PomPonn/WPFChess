@@ -241,16 +241,16 @@ namespace Chess
 
                 if (castleRook != null && castleRook.Type == PieceType.Rook && castleRook.IsWhite == king.IsWhite)
                 {
-                    for (int i = from.X + dir; i != to.X; i += dir)
+                    for (int x = from.X + dir; x != to.X; x += dir)
                     {
-                        if (pieces[from.Y, i] != null)
+                        if (pieces[from.Y, x] != null)
                             return false;
 
-                        pieces[from.Y, i] = king;
+                        pieces[from.Y, x] = king;
 
-                        bool isChecked = KingChecked(pieces, gameContext, new Position(from.Y, i));
+                        bool isChecked = KingChecked(pieces, gameContext, new Position(x, from.Y));
 
-                        pieces[from.Y, i] = null;
+                        pieces[from.Y, x] = null;
 
                         if (isChecked)
                         {
