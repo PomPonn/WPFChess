@@ -4,7 +4,7 @@
     {
         public Position Start { get; set; } = start;
         public Position End { get; set; } = end;
-        
+
 
         public Move(Position start, Position end, BoardRotation rotation) : this(start, end)
         {
@@ -12,7 +12,7 @@
         }
 
         public Move(string move) : this(new Position(move[..2]), new Position(move[2..4])) { }
-        
+
         public readonly void Deconstruct(out Position start, out Position end)
         {
             start = Start;

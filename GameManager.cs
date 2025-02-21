@@ -64,7 +64,7 @@ namespace Chess
             if (pieces != null)
             {
                 Pieces = pieces;
-                board.InitPosition(Pieces);
+                board.InitPieces(Pieces);
             }
         }
 
@@ -118,7 +118,7 @@ namespace Chess
                 _ = RequestBotMove();
         }
 
-        public void LoadFENPosition(string fen)
+        public void LoadFEN(string fen)
         {
             var res = FEN.Parse(fen);
 
@@ -126,7 +126,7 @@ namespace Chess
 
             gameContext = res.context;
 
-            Board.InitPosition(Pieces);
+            Board.InitPieces(Pieces);
         }
 
         private bool AlliedKingCheck(Move move, Piece piece)

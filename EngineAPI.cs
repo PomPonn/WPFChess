@@ -29,12 +29,17 @@ namespace Chess
 
         public static async Task<APIResponse> Request(string fen, int depth = 12)
         {
+            // asynchroniczne pobranie odpowiedzi API,
+            // podającac pozycję FEN i głębokość liczenia
+            // jako parametry URL
             using HttpResponseMessage response = await client.GetAsync(
                 Path.Combine(APIEndpoint, $"?fen={fen}&depth={depth}")
             );
             response.EnsureSuccessStatusCode();
 
+            // przekonwertowanie ciała odpowiedzi na JSON
             var apiAnswer = await response.Content.ReadFromJsonAsync<APIResponse>();
+
             if (!apiAnswer.Success)
                 throw new HttpRequestException($"Invalid chess engine api request - {apiAnswer.Error}");
 

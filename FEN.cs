@@ -20,6 +20,9 @@ namespace Chess
         {
             string res = "";
 
+            // sprawdzenie obecności każdego prawa do roszady
+            // i dodanie go jako string jeśli jest obecne
+
             foreach (string name in Enum.GetNames(typeof(CastlingAbility)))
             {
                 CastlingAbility ability = (CastlingAbility)Enum.Parse(typeof(CastlingAbility), name);
@@ -47,6 +50,7 @@ namespace Chess
         }
     }
 
+    // klasa do pracy z FEN (Forsyth–Edwards Notation - format do zapisu pozycji szachowych)
     public static class FEN
     {
         public struct Context

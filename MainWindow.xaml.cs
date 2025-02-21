@@ -14,13 +14,12 @@ namespace Chess
             {
                 Rotation = BoardRotation.BlackBottom,
             };
-
             GameManager game = new(board);
 
             // "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" -- starting position
             // "k7/8/8/8/8/8/8/QK6 b - - 0 30" -- check test
             // "k7/7P/8/8/8/8/8/QK6 b - - 0 30" -- pawn succession test
-            game.LoadFENPosition("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+            game.LoadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
             game.StartGameAgainstBot(2, true);
             //game.StartLocalGame();
