@@ -5,19 +5,85 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:Chess"
         mc:Ignorable="d"
+        FontSize="16"
+        FontFamily="Calibri"
         Title="MainWindow" Height="800" Width="800">
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="*" />
-            <ColumnDefinition Width="*" />
-        </Grid.ColumnDefinitions>
-
+    <Grid x:Name="g_MainGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
-            <RowDefinition Height="4*" />
+            <RowDefinition Height="*" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
+
+        <StackPanel x:Name="sp_GameSettings" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+
+            <Label FontWeight="Bold" FontSize="24" Margin="10"
+                   HorizontalAlignment="Center" Content="Nowa Gra"/>
+
+            <GroupBox>
+                <StackPanel Margin="10">
+
+                    <StackPanel Orientation="Horizontal" Margin="10">
+                        <Label Content="Tryb gry: "/>
+
+                        <ComboBox x:Name="cb_GameMode" SelectionChanged="cb_GameMode_SelectionChanged">
+                            <ComboBoxItem IsSelected="True" Tag="local" Content="lokalna"/>
+                            <ComboBoxItem Tag="AI" Content="przeciwko AI"/>
+                        </ComboBox>
+                    </StackPanel>
+
+                    <StackPanel 
+                        Visibility="Collapsed"
+                        x:Name="sp_ColorPanel" Orientation="Horizontal" Margin="5">
+                        <Label Content="Kolor gracza: "/>
+                        <ComboBox x:Name="cb_PlayerSide">
+                            <ComboBoxItem IsSelected="True" Tag="white" Content="biały"/>
+                            <ComboBoxItem Tag="black" Content="czarny"/>
+                        </ComboBox>
+                    </StackPanel>
+                    
+                    <StackPanel 
+                        ToolTip="Głębokość liczenia silnika"
+                        Visibility="Collapsed"
+                        x:Name="sp_DifficultyPanel" Orientation="Horizontal" Margin="5">
+                        
+                        <Label Content="Trudność AI: "/>
+                        <StackPanel Orientation="Vertical">
+                            <Label x:Name="lb_difficultyLabel"/>
+                            <Slider Minimum="1" Maximum="16" TickFrequency="1" Width="120"
+                                x:Name="sld_DifficultySlider"
+                                ValueChanged="sld_DifficultySlider_ValueChanged"/>
+                        </StackPanel>
+                        
+                    </StackPanel>
+                    
+                    <StackPanel 
+                        ToolTip="W formacie FEN"
+                        Margin="5">
+
+                        <StackPanel Orientation="Horizontal">
+                            <Label Content="Pozycja startowa:" Margin="0,0,80,0"/>
+                            <Button x:Name="btn_PastePosition" Content="Wklej" Margin="3" Padding="2"
+                                    Click="btn_PastePosition_Click"/>
+                            <Button x:Name="btn_CopyPosition" Content="Kopiuj" Margin="3" Padding="2"
+                                    Click="btn_CopyPosition_Click"/>
+                        </StackPanel>
+                        
+                        <TextBox x:Name="tb_StartPosition" Width="300"/>
+                    </StackPanel>
+                    
+                </StackPanel>
+            </GroupBox>
+
+            <Button x:Name="btn_StartGame" Margin="10" Content="Rozpocznij grę" Padding="10"
+                    Click="btn_StartGame_Click"/>
+            
+        </StackPanel>
+
         
-        <Canvas Grid.Column="1" Grid.Row="1" x:Name="cnv_boardWrapper"/>
+        <Canvas Grid.Row="1" SizeChanged="cnv_MainCanvasWrapper_SizeChanged"
+                Visibility="Collapsed" x:Name="cnv_MainCanvasWrapper">
+            <Canvas x:Name="cnv_MainCanvas"/>
+        </Canvas>
     </Grid>
 </Window>

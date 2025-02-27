@@ -39,11 +39,10 @@ namespace Chess
         bool gameRunning;
         bool isClientWhiteSide = true;
         private bool CanClientMove
-    => gameType != GameType.Local ? gameContext.IsWhiteToMove == isClientWhiteSide : true;
+            => gameType == GameType.Local || gameContext.IsWhiteToMove == isClientWhiteSide;
 
         public ChessBoard Board { get; set; }
         public Piece[,] Pieces = null;
-
 
 
         public GameManager(ChessBoard board, Piece[,] pieces = null)

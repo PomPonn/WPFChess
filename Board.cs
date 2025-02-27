@@ -42,8 +42,6 @@ namespace Chess
         readonly Image boardImage;
         readonly MoveHighlight moveHighlight;
         readonly SquareHighlight selectedHighlight;
-        // wizualna wielkość szachownicy
-        readonly int BoardSize;
 
         int TileSize => BoardSize / 8;
         Position? selectedPieceStartPos = null;
@@ -51,6 +49,8 @@ namespace Chess
         bool pieceClicked = false;
         bool pieceDragged = false;
 
+        // wizualna wielkość szachownicy
+        public int BoardSize { get; private set; }
         public BoardRotation Rotation { get; set; } = BoardRotation.WhiteBottom;
         public bool Interactable { get; set; } = true;
         // menedżer gry zarządzający tą szachownicą
@@ -74,8 +74,8 @@ namespace Chess
             boardImage = new Image
             {
                 Source = boardBitmap,
-                Width = BoardSize,
-                Height = BoardSize
+                Width = boardSize,
+                Height = boardSize
             };
             Canvas.SetZIndex(boardImage, -10);
             drawCanvas.Children.Add(boardImage);
@@ -119,7 +119,7 @@ namespace Chess
             selectedPieceStartPos = pos;
             Canvas.SetZIndex(selectedPiece, 10);
 
-            selectedHighlight.InitPieces(pos);
+            selectedHighlight.SetPosition(pos);
             selectedHighlight.Show(drawCanvas);
         }
 
@@ -267,7 +267,7 @@ namespace Chess
             pieceImages[from.Y, from.X] = null;
 
             // ustawienie podświetlenia ruchu
-            moveHighlight.InitPieces(from, to);
+            moveHighlight.SetPosition(from, to);
             moveHighlight.Show(drawCanvas);
 
             SetImagePosition(pieceImages[to.Y, to.X], to);
@@ -313,6 +313,7 @@ namespace Chess
 
         public void InitPieces(Piece[,] board)
         {
+            drawCanvas.Visibility = Visibility.Hidden;
             drawCanvas.Children.Clear();
 
             drawCanvas.Children.Add(boardImage);
@@ -345,6 +346,37 @@ namespace Chess
                     }
                 }
             }
+
+            drawCanvas.Visibility = Visibility.Visible;
+        }
+
+        public void Resize(int newSize)
+        {
+            drawCanvas.Visibility = Visibility.Hidden;
+
+            BoardSize = newSize;
+
+            boardImage.Width = BoardSize;
+            boardImage.Height = BoardSize;
+
+            moveHighlight.Resize(TileSize);
+            selectedHighlight.Resize(TileSize);
+
+            for (int i = 0; i < 8; i++)
+            {
+                for (int j = 0; j < 8; j++)
+                {
+                    if (pieceImages[j, i] == null)
+                        continue;
+
+                    pieceImages[j, i].Width = TileSize;
+                    pieceImages[j, i].Height = TileSize;
+
+                    SetImagePosition(pieceImages[j, i], new Position(i, j));
+                }
+            }
+
+            drawCanvas.Visibility = Visibility.Visible;
         }
     }
 }
