@@ -1,9 +1,36 @@
-﻿using System;
+﻿/*
+Zadanie zaliczeniowe z c#
+Imię i nazwisko ucznia: Filip Gronkowski
+Data wykonania zadania: 17.02.2025 - 04.03.2025
+Treść zadania: 'Szachy'
+Opis funkcjonalności aplikacji: 
+    Aplikacja umożliwia grę w szachy z zachowaniem wszystkich zasad gry.
+    Przed rozpoczęciem gry można ją skonfigurować. Dostępne parametry to:
+        - tryb gry (gra lokalna i przeciwko AI),
+        - pozycja startowa (w formacie FEN) oraz jej kopiowanie/wklejanie,
+        - po wybraniu trybu 'przeciwko AI':
+            * kolor gracza,
+            * trudność AI od 4 do 16 (wyznaczająca głębokość liczenia silnika).
+    Po rozpoczęciu gry pokazuje się szachownica (skalująca się wraz z rozmiarami okna),
+    oraz przyciski, umożliwiające skopiowanie pozycji, obrócenie szachownicy i powrót do lobby.
+*/
+
+
+using System;
 
 namespace Chess
 {
+    /// <summary>
+    /// Grupuje funkcje sprawdzajace poprawność ruchów i tym podobne
+    /// </summary>
     public static class MoveValidator
     {
+        /// <summary>
+        /// Odnajduje pozycję króla
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="isWhite">czy szukany król jest biały</param>
+        /// <returns>pozycja króla lub nieprawidłowa pozycja, jeśli króla nie ma</returns>
         private static Position FindKing(Piece[,] pieces, bool isWhite)
         {
             for (int i = 0; i < 8; i++)
@@ -20,6 +47,14 @@ namespace Chess
             return new Position(-1, -1);
         }
 
+        /// <summary>
+        /// Dla każdego pola szachownicy wywołuje podaną funkcję,
+        /// z pominięciem figur o podanym kolorze i pustych pól.
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="isWhite">kolor do zignorowania</param>
+        /// <param name="checkPiece">funkcja zwrotna, wywoływana dla każdego pola</param>
+        /// <returns><b>True</b>, jeżeli funkcja zwrotna zwróciła prawdę</returns>
         private static bool CheckTilesForEachPiece(Piece[,] pieces, bool isWhite, Func<Position, Position, bool> checkPiece)
         {
             for (int i = 0; i < 8; i++)
@@ -47,6 +82,13 @@ namespace Chess
             return false;
         }
 
+        /// <summary>
+        /// Sprawdza, czy roszada jest możliwa z obecym zestawem praw
+        /// </summary>
+        /// <param name="king">figura roszującego króla</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="move">ruch króla</param>
+        /// <returns>Czy można zroszować</returns>
         private static bool VerifyCastlingRights(Piece king, FEN.Context gameContext, Move move)
         {
             if (king.Type != PieceType.King)
@@ -74,35 +116,15 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckMove(Piece[,] pieces, Move move, FEN.Context gameContext, out bool specialMove)
-        {
-            specialMove = false;
-            (Position from, Position to) = move;
-
-            if (!from.InBounds() || !to.InBounds() ||
-                (pieces[to.Y, to.X] != null && pieces[from.Y, from.X].IsWhite == pieces[to.Y, to.X].IsWhite))
-                return false;
-
-            switch (pieces[from.Y, from.X].Type)
-            {
-                case PieceType.Pawn:
-                    return CheckPawnMove(pieces, move, gameContext.EnPassantTarget, out specialMove);
-                case PieceType.Knight:
-                    return CheckKnightMove(move);
-                case PieceType.Bishop:
-                    return CheckBishopMove(pieces, move);
-                case PieceType.Rook:
-                    return CheckRookMove(pieces, move);
-                case PieceType.Queen:
-                    return CheckQueenMove(pieces, move);
-                case PieceType.King:
-                    return CheckKingMove(pieces, gameContext, move, out specialMove);
-                default:
-                    return false;
-            }
-        }
-
-        public static bool CheckPawnMove(Piece[,] pieces, Move move, Position? enPassantTarget, out bool enPassantCapture)
+        /// <summary>
+        /// Sprawdza poprawność ruchu pionka
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <param name="enPassantTarget">opcjonalna pozycja jako cel do zbicia po ruchu en passant przeciwnika</param>
+        /// <param name="enPassantCapture">czy ruch jest en passant (w przelocie)</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        private static bool CheckPawnMove(Piece[,] pieces, Move move, Position? enPassantTarget, out bool enPassantCapture)
         {
             (Position from, Position to) = move;
 
@@ -146,7 +168,12 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckKnightMove(Move move)
+        /// <summary>
+        /// Sprawdza poprawność ruchu skoczka
+        /// </summary>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        private static bool CheckKnightMove(Move move)
         {
             (Position from, Position to) = move;
 
@@ -159,7 +186,13 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckBishopMove(Piece[,] pieces, Move move)
+        /// <summary>
+        /// Sprawdza poprawność ruchu gońca
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        private static bool CheckBishopMove(Piece[,] pieces, Move move)
         {
             (Position from, Position to) = move;
 
@@ -178,7 +211,13 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckRookMove(Piece[,] pieces, Move move)
+        /// <summary>
+        /// Sprawdza poprawność ruchu wieży
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        private static bool CheckRookMove(Piece[,] pieces, Move move)
         {
             (Position from, Position to) = move;
 
@@ -208,12 +247,26 @@ namespace Chess
             return false;
         }
 
-        public static bool CheckQueenMove(Piece[,] pieces, Move move)
+        /// <summary>
+        /// Sprawdza poprawność ruchu hetmana
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        private static bool CheckQueenMove(Piece[,] pieces, Move move)
         {
             return CheckBishopMove(pieces, move) || CheckRookMove(pieces, move);
         }
 
-        public static bool CheckKingMove(Piece[,] pieces, FEN.Context gameContext, Move move, out bool castled)
+        /// <summary>
+        /// Sprawdza poprawność ruchu króla
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <param name="castled">czy ruch wiąże sie z roszadą</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        private static bool CheckKingMove(Piece[,] pieces, FEN.Context gameContext, Move move, out bool castled)
         {
             castled = false;
             (Position from, Position to) = move;
@@ -266,6 +319,49 @@ namespace Chess
             return false;
         }
 
+        /// <summary>
+        /// Sprawdza poprawność podanego ruchu
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="move">ruch do sprawdzenia</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="specialMove">informuje, czy podany ruch wiąże się z dodatkowymi ruchami</param>
+        /// <returns>czy ruch jest poprawny</returns>
+        public static bool CheckMove(Piece[,] pieces, Move move, FEN.Context gameContext, out bool specialMove)
+        {
+            specialMove = false;
+            (Position from, Position to) = move;
+
+            if (!from.InBounds() || !to.InBounds() ||
+                (pieces[to.Y, to.X] != null && pieces[from.Y, from.X].IsWhite == pieces[to.Y, to.X].IsWhite))
+                return false;
+
+            switch (pieces[from.Y, from.X].Type)
+            {
+                case PieceType.Pawn:
+                    return CheckPawnMove(pieces, move, gameContext.EnPassantTarget, out specialMove);
+                case PieceType.Knight:
+                    return CheckKnightMove(move);
+                case PieceType.Bishop:
+                    return CheckBishopMove(pieces, move);
+                case PieceType.Rook:
+                    return CheckRookMove(pieces, move);
+                case PieceType.Queen:
+                    return CheckQueenMove(pieces, move);
+                case PieceType.King:
+                    return CheckKingMove(pieces, gameContext, move, out specialMove);
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Sprawdza, czy król jest szachowany
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="kingPos">pozycja króla</param>
+        /// <returns>czy król jest szachowany</returns>
         public static bool KingChecked(Piece[,] pieces, FEN.Context gameContext, Position kingPos)
         {
             Piece king = pieces[kingPos.Y, kingPos.X];
@@ -291,6 +387,13 @@ namespace Chess
             return false;
         }
 
+        /// <summary>
+        /// Sprawdza, czy król jest szachowany
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="isWhite">kolor króla</param>
+        /// <returns>czy król jest szachowany</returns>
         public static bool KingChecked(Piece[,] pieces, FEN.Context gameContext, bool isWhite)
         {
             Position kingPos = FindKing(pieces, isWhite);
@@ -298,6 +401,13 @@ namespace Chess
             return KingChecked(pieces, gameContext, kingPos);
         }
 
+        /// <summary>
+        /// Sprawdza, czy wystąpił pat
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="isWhite">kolor do sprawdzenia</param>
+        /// <returns>czy jest pat</returns>
         public static bool Stalemate(Piece[,] pieces, FEN.Context gameContext, bool isWhite)
         {
             if (KingChecked(pieces, gameContext, isWhite))
@@ -333,6 +443,13 @@ namespace Chess
             });
         }
 
+        /// <summary>
+        /// Sprawdza, czy wystąpił mat
+        /// </summary>
+        /// <param name="pieces">szachownica jako dwuwymiarowa tablica</param>
+        /// <param name="gameContext">kontekst gry</param>
+        /// <param name="isWhite">kolor do sprawdzenia</param>
+        /// <returns>czy jest mat</returns>
         public static bool KingMated(Piece[,] pieces, FEN.Context gameContext, bool isWhite)
         {
             Position kingPos = FindKing(pieces, isWhite);

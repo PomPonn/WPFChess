@@ -1,8 +1,29 @@
-﻿using System;
+﻿/*
+Zadanie zaliczeniowe z c#
+Imię i nazwisko ucznia: Filip Gronkowski
+Data wykonania zadania: 17.02.2025 - 04.03.2025
+Treść zadania: 'Szachy'
+Opis funkcjonalności aplikacji: 
+    Aplikacja umożliwia grę w szachy z zachowaniem wszystkich zasad gry.
+    Przed rozpoczęciem gry można ją skonfigurować. Dostępne parametry to:
+        - tryb gry (gra lokalna i przeciwko AI),
+        - pozycja startowa (w formacie FEN) oraz jej kopiowanie/wklejanie,
+        - po wybraniu trybu 'przeciwko AI':
+            * kolor gracza,
+            * trudność AI od 4 do 16 (wyznaczająca głębokość liczenia silnika).
+    Po rozpoczęciu gry pokazuje się szachownica (skalująca się wraz z rozmiarami okna),
+    oraz przyciski, umożliwiające skopiowanie pozycji, obrócenie szachownicy i powrót do lobby.
+*/
+
+
+using System;
 using System.Linq;
 
 namespace Chess
 {
+    /// <summary>
+    /// pojedyncze zdolności do roszady jako flagi
+    /// </summary>
     [Flags]
     public enum CastlingAbility
     {
@@ -12,6 +33,10 @@ namespace Chess
         q = 0b0001,
     }
 
+    /// <summary>
+    /// siatka bitów reprezentująca zdolności do roszady obu kolorów
+    /// </summary>
+    /// <param name="value">początkowa wartość</param>
     public struct CastlingBitField(int value)
     {
         public int Value { get; private set; } = value;
@@ -34,23 +59,37 @@ namespace Chess
             return String.IsNullOrEmpty(res) ? "-" : res;
         }
 
+        /// <summary>
+        /// Sprawdza, czy flaga jest obecna
+        /// </summary>
+        /// <param name="flag">flaga do sprawdzenia</param>
         public readonly bool HasFlag(CastlingAbility flag)
         {
             return (Value & (int)flag) != 0;
         }
 
+        /// <summary>
+        /// Ustawia daną flagę
+        /// </summary>
+        /// <param name="flag">flaga do ustawienia</param>
         public void SetFlag(CastlingAbility flag)
         {
             Value |= (int)flag;
         }
 
+        /// <summary>
+        /// Deaktywuje daną flagę
+        /// </summary>
+        /// <param name="flag">flaga do dezaktywacji</param>
         public void UnsetFlag(CastlingAbility flag)
         {
             Value &= ~(int)flag;
         }
     }
 
-    // klasa do pracy z FEN (Forsyth–Edwards Notation - format do zapisu pozycji szachowych)
+    /// <summary>
+    /// klasa do pracy z FEN (Forsyth–Edwards Notation - format do zapisu pozycji szachowych)
+    /// </summary>
     public static class FEN
     {
         public struct Context
@@ -68,6 +107,12 @@ namespace Chess
             public Context context;
         }
 
+        /// <summary>
+        /// Parsuje pojedynczy wiersz
+        /// </summary>
+        /// <param name="table">tablica figur, do której wpisać wiersz</param>
+        /// <param name="rowNumber">numer wiersza</param>
+        /// <param name="placementStr">string do sparsowania</param>
         private static void ParseRowPlacement(Piece[,] table, int rowNumber, string placementStr)
         {
             int i = 0;
@@ -86,6 +131,12 @@ namespace Chess
             }
         }
 
+        /// <summary>
+        /// Buduje nowy string FEN z podej tablicy figur i kontekstu
+        /// </summary>
+        /// <param name="table">dwuwymiarowa tablica figur reprezentująca szachownicę</param>
+        /// <param name="context">kontekst gry</param>
+        /// <returns>string FEN</returns>
         public static string Build(Piece[,] table, Context context)
         {
             // board
@@ -146,6 +197,12 @@ namespace Chess
             return output;
         }
 
+        /// <summary>
+        /// parsuje string FEN
+        /// </summary>
+        /// <param name="input">string FEN do sparsowania</param>
+        /// <returns>sparsowana pozycja FEN</returns>
+        /// <exception cref="ArgumentException">nieprawidłowy string FEN</exception>
         public static Result Parse(string input)
         {
             Result result = new();

@@ -1,4 +1,23 @@
-﻿using System.IO;
+﻿/*
+Zadanie zaliczeniowe z c#
+Imię i nazwisko ucznia: Filip Gronkowski
+Data wykonania zadania: 17.02.2025 - 04.03.2025
+Treść zadania: 'Szachy'
+Opis funkcjonalności aplikacji: 
+    Aplikacja umożliwia grę w szachy z zachowaniem wszystkich zasad gry.
+    Przed rozpoczęciem gry można ją skonfigurować. Dostępne parametry to:
+        - tryb gry (gra lokalna i przeciwko AI),
+        - pozycja startowa (w formacie FEN) oraz jej kopiowanie/wklejanie,
+        - po wybraniu trybu 'przeciwko AI':
+            * kolor gracza,
+            * trudność AI od 4 do 16 (wyznaczająca głębokość liczenia silnika).
+    Po rozpoczęciu gry pokazuje się szachownica (skalująca się wraz z rozmiarami okna),
+    oraz przyciski, umożliwiające skopiowanie pozycji, obrócenie szachownicy i powrót do lobby.
+*/
+
+
+using System;
+using System.IO;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -11,6 +30,9 @@ namespace Chess
         static readonly string APIEndpoint = "https://stockfish.online/api/s/v2.php";
 
 
+        /// <summary>
+        /// Reprezentuje odpowiedź API
+        /// </summary>
         public struct APIResponse
         {
             public bool Success { get; set; }
@@ -27,6 +49,13 @@ namespace Chess
             }
         }
 
+        /// <summary>
+        /// Asynchronicznie prosi API o podanie ruchu, wysyłając przy tym pozycję fen i glębokość silnika
+        /// </summary>
+        /// <param name="fen">pozycja FEN</param>
+        /// <param name="depth">głębokość liczenia silnika</param>
+        /// <returns></returns>
+        /// <exception cref="ArgumentException">API odrzuciło dane</exception>
         public static async Task<APIResponse> Request(string fen, int depth = 12)
         {
             // asynchroniczne pobranie odpowiedzi API,
@@ -41,7 +70,7 @@ namespace Chess
             var apiAnswer = await response.Content.ReadFromJsonAsync<APIResponse>();
 
             if (!apiAnswer.Success)
-                throw new HttpRequestException($"Invalid chess engine api request - {apiAnswer.Error}");
+                throw new ArgumentException($"Invalid chess engine api request - {apiAnswer.Error}");
 
             return apiAnswer;
         }

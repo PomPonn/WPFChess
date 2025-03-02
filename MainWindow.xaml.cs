@@ -1,12 +1,34 @@
-﻿using System;
+﻿/*
+Zadanie zaliczeniowe z c#
+Imię i nazwisko ucznia: Filip Gronkowski
+Data wykonania zadania: 17.02.2025 - 04.03.2025
+Treść zadania: 'Szachy'
+Opis funkcjonalności aplikacji: 
+    Aplikacja umożliwia grę w szachy z zachowaniem wszystkich zasad gry.
+    Przed rozpoczęciem gry można ją skonfigurować. Dostępne parametry to:
+        - tryb gry (gra lokalna i przeciwko AI),
+        - pozycja startowa (w formacie FEN) oraz jej kopiowanie/wklejanie,
+        - po wybraniu trybu 'przeciwko AI':
+            * kolor gracza,
+            * trudność AI od 4 do 16 (wyznaczająca głębokość liczenia silnika).
+    Po rozpoczęciu gry pokazuje się szachownica (skalująca się wraz z rozmiarami okna),
+    oraz przyciski, umożliwiające skopiowanie pozycji, obrócenie szachownicy i powrót do lobby.
+*/
+
+
+using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace Chess
 {
+    /// <summary>
+    /// Okno główne aplikacji
+    /// </summary>
     public partial class MainWindow : Window
     {
+        // kolor obecnie wykonującego ruch gracza
         private static readonly SolidColorBrush currentPlayerColor = new(Colors.LightGray);
 
         private const string defaultMode = "local";
@@ -25,7 +47,9 @@ namespace Chess
         private DockPanel BlackPlayerPanel;
         private bool isWhiteToMove;
 
-
+        /// <summary>
+        /// Konstruktor główny
+        /// </summary>
         public MainWindow()
         {
             InitializeComponent();
@@ -43,11 +67,20 @@ namespace Chess
             };
         }
 
+        /// <summary>
+        /// ucina resztę z dzielenia od liczby
+        /// </summary>
+        /// <param name="val">dzielna</param>
+        /// <param name="div">dzielnik</param>
+        /// <returns>liczba bez reszty</returns>
         private static int CutRemainder(int val, int div)
         {
             return val - (val % div);
         }
 
+        /// <summary>
+        /// aktualizuje stan panelów z informacjami o graczach
+        /// </summary>
         private void UpdatePlayerPanels()
         {
             if (isWhiteToMove == mainGameManager.IsWhiteToMove)
@@ -65,15 +98,19 @@ namespace Chess
             (BlackPlayerPanel.Children[1] as Label).Content = materialStr(-mainGameManager.MaterialDifference);
         }
 
+        /// <summary>
+        /// Wywoływane przy aktualizacji stanu wizualnej szachownicy
+        /// </summary>
         private void OnBoardUpdate()
         {
             UpdatePlayerPanels();
         }
 
-        private void EndGame()
+        /// <summary>
+        /// przywraca widok lobby
+        /// </summary>
+        private void ReturnToLobby()
         {
-            mainGameManager.ForceGameOver();
-
             cnv_MainCanvasWrapper.Visibility = Visibility.Collapsed;
             p_BottomPlayerPanel.Visibility = Visibility.Collapsed;
             p_TopPlayerPanel.Visibility = Visibility.Collapsed;
@@ -82,6 +119,11 @@ namespace Chess
             sp_GameSettings.Visibility = Visibility.Visible;
         }
 
+        /// <summary>
+        /// Wywoływane przy zakończeniu gry przez <i>mainGameManager</i>
+        /// </summary>
+        /// <param name="result">rezultat gry</param>
+        /// <param name="message">opcjonalna informacja o zakończeniu gry</param>
         private void OnGameOver(GameResult result, string message = "")
         {
             string text;
@@ -105,6 +147,10 @@ namespace Chess
             MessageBox.Show(text, "Koniec gry", MessageBoxButton.OK, MessageBoxImage.Information);
         }
 
+        /// <summary>
+        /// Pozycjonuje i skaluje szachownicę w zależności od dostępnego miejsca
+        /// </summary>
+        /// <param name="wrapSize">wielkość opisująca dostępną przestrzeń w oknie</param>
         private void AlignBoardPlacement(Size wrapSize)
         {
             double calculatedSideMargin = boardHorizontalMarginPercent * mainBoard.BoardSize / 2;
@@ -123,6 +169,9 @@ namespace Chess
             Canvas.SetLeft(cnv_MainCanvas, freeSpace / 2);
         }
 
+        /// <summary>
+        /// inicjalizuje szachownice
+        /// </summary>
         private void InitBoard()
         {
             string selectedMode = (string)(cb_GameMode.SelectedValue as ComboBoxItem).Tag;
@@ -139,10 +188,16 @@ namespace Chess
                 MessageBox.Show(
                     "Podano nieprawdiłową pozycję startową", "Błąd",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+
+                ReturnToLobby();
                 return;
             }
 
             sp_GameSettings.Visibility = Visibility.Collapsed;
+            cnv_MainCanvasWrapper.Visibility = Visibility.Visible;
+            isWhiteToMove = mainGameManager.IsWhiteToMove;
+            UpdatePlayerPanels();
+
 
             if (selectedMode == "local")
             {
@@ -154,13 +209,11 @@ namespace Chess
 
                 mainGameManager.StartGameAgainstBot(difficulty, playerSide == "white");
             }
-
-            isWhiteToMove = mainGameManager.IsWhiteToMove;
-            UpdatePlayerPanels();
-
-            cnv_MainCanvasWrapper.Visibility = Visibility.Visible;
         }
 
+        /// <summary>
+        /// inicjalizuje etykiety graczy
+        /// </summary>
         private void InitPlayerLabels()
         {
             string playerSide = (string)(cb_PlayerSide.SelectedValue as ComboBoxItem).Tag;
@@ -201,6 +254,9 @@ namespace Chess
             BlackPlayerPanel.Visibility = Visibility.Visible;
         }
 
+        /// <summary>
+        /// resetuje menu ustawień
+        /// </summary>
         private void ResetSettingsMenu()
         {
             cb_GameMode.SelectedIndex = 0;
@@ -214,6 +270,10 @@ namespace Chess
             tb_StartPosition.Text = defaultFENPosition;
         }
 
+        /// <summary>
+        /// Pokazuje ustawienia dla wybranego trybu
+        /// </summary>
+        /// <param name="mode">wybrany tryb</param>
         private void ShowMenuGameModeSettings(string mode)
         {
             if (mode == "local")
@@ -227,6 +287,10 @@ namespace Chess
                 sp_DifficultyPanel.Visibility = Visibility.Visible;
             }
         }
+
+        /*
+         * xaml'owe wydarzenia...
+         */
 
         private void cb_GameMode_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -262,6 +326,7 @@ namespace Chess
 
         private void RotateButton_Click(object sender, RoutedEventArgs e)
         {
+            // podmienia zawartości paneli
             static void SwapContents(object v1, object v2)
             {
                 string temp = (string)(v1 as Label).Content;
@@ -294,7 +359,14 @@ namespace Chess
                 if (res == MessageBoxResult.No) return;
             }
 
-            EndGame();
+            mainGameManager.ForceGameOver();
+
+            ReturnToLobby();
+        }
+
+        private void btn_ResetPosition_Click(object sender, RoutedEventArgs e)
+        {
+            tb_StartPosition.Text = defaultFENPosition;
         }
     }
 }

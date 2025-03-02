@@ -1,4 +1,22 @@
-﻿using System;
+﻿/*
+Zadanie zaliczeniowe z c#
+Imię i nazwisko ucznia: Filip Gronkowski
+Data wykonania zadania: 17.02.2025 - 04.03.2025
+Treść zadania: 'Szachy'
+Opis funkcjonalności aplikacji: 
+    Aplikacja umożliwia grę w szachy z zachowaniem wszystkich zasad gry.
+    Przed rozpoczęciem gry można ją skonfigurować. Dostępne parametry to:
+        - tryb gry (gra lokalna i przeciwko AI),
+        - pozycja startowa (w formacie FEN) oraz jej kopiowanie/wklejanie,
+        - po wybraniu trybu 'przeciwko AI':
+            * kolor gracza,
+            * trudność AI od 4 do 16 (wyznaczająca głębokość liczenia silnika).
+    Po rozpoczęciu gry pokazuje się szachownica (skalująca się wraz z rozmiarami okna),
+    oraz przyciski, umożliwiające skopiowanie pozycji, obrócenie szachownicy i powrót do lobby.
+*/
+
+
+using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
@@ -8,14 +26,21 @@ using System.Windows.Media.Imaging;
 
 namespace Chess
 {
+    /// <summary>
+    /// Reprezentuje stan obrócenia szachownicy
+    /// </summary>
     public enum BoardRotation
     {
         WhiteBottom,
         BlackBottom
     }
 
+    /// <summary>
+    /// Reprezentuje część wizualną gry (szachownicę)
+    /// </summary>
     public class ChessBoard
     {
+        // grafiki figur
         static readonly Dictionary<string, BitmapImage> pieceBitmaps = new()
         {
             { "w_p", new BitmapImage(new Uri("images/pieces/w_p.png", UriKind.Relative)) },
@@ -31,6 +56,7 @@ namespace Chess
             { "b_b", new BitmapImage(new Uri("images/pieces/b_b.png", UriKind.Relative)) },
             { "b_r", new BitmapImage(new Uri("images/pieces/b_r.png", UriKind.Relative)) }
         };
+        // grafika szachownicy
         static readonly BitmapImage boardBitmap = new(new Uri("images/board.png", UriKind.Relative));
         static readonly SolidColorBrush highlightColor = new(Colors.LightCoral);
 
@@ -60,6 +86,13 @@ namespace Chess
 
         public OnUpdate PiecesUpdateHandler { get; set; }
 
+        /// <summary>
+        /// Konstruktor główny
+        /// </summary>
+        /// <param name="contextWindow">okno, do którego dołączane są zdarzenia</param>
+        /// <param name="drawCanvas">Kanwa, na której rysować</param>
+        /// <param name="boardSize">wielkość szachownicy - <b>powinna być podzielna przez 8</b>,
+        /// w przeciwnym razie figury będą sie rozjeżdżać</param>
         public ChessBoard(Window contextWindow, Canvas drawCanvas, int boardSize)
         {
             BoardSize = boardSize;
@@ -84,12 +117,20 @@ namespace Chess
             drawCanvas.Children.Add(boardImage);
         }
 
+        /// <summary>
+        /// Ustawia pozycję grafiki figury
+        /// </summary>
+        /// <param name="obj">grafika do nastawienia</param>
+        /// <param name="offset">pozycja</param>
         private void SetImagePosition(Image obj, Position offset)
         {
             Canvas.SetTop(obj, offset.Y * TileSize);
             Canvas.SetLeft(obj, offset.X * TileSize);
         }
 
+        /// <summary>
+        /// Cofa pozycję zaznaczonej figry
+        /// </summary>
         private void RevertSelectedPiecePosition()
         {
             if (selectedPiece == null) return;
@@ -98,18 +139,28 @@ namespace Chess
             Canvas.SetLeft(selectedPiece, selectedPieceStartPos.Value.X * TileSize);
         }
 
+        /// <summary>
+        /// rozpoczyna przeciąganie figury
+        /// </summary>
         private void StartDrag()
         {
             pieceDragged = true;
             contextWindow.Cursor = Cursors.Hand;
         }
 
+        /// <summary>
+        /// Kończy przeciąganie figury
+        /// </summary>
         private void EndDrag()
         {
             pieceDragged = false;
             contextWindow.Cursor = Cursors.Arrow;
         }
 
+        /// <summary>
+        /// Zaznacza figurę
+        /// </summary>
+        /// <param name="pos">pozycja figury</param>
         private void SelectPiece(Position pos)
         {
             if (pieceImages[pos.Y, pos.X] == null || selectedPiece == pieceImages[pos.Y, pos.X])
@@ -126,6 +177,9 @@ namespace Chess
             selectedHighlight.Show(drawCanvas);
         }
 
+        /// <summary>
+        /// Odznacza figure
+        /// </summary>
         private void UnselectPiece()
         {
             if (selectedPiece == null) return;
@@ -137,6 +191,10 @@ namespace Chess
 
             selectedHighlight.Hide(drawCanvas);
         }
+
+        /*
+         * wydarzenia...
+         */
 
         private void BoardMouseDown(object sender, MouseButtonEventArgs e)
         {
@@ -253,6 +311,10 @@ namespace Chess
             Canvas.SetTop(selectedPiece, p.Y - (TileSize / 2));
         }
 
+        /// <summary>
+        /// Przemieszcza figurę (bez sprawdzania poprawności ruchu)
+        /// </summary>
+        /// <param name="move">ruch do wykonania</param>
         public void MovePiece(Move move)
         {
             // dostosowanie ruchu do obrócenia szachownicy
@@ -275,7 +337,12 @@ namespace Chess
             PiecesUpdateHandler?.Invoke();
         }
 
-        public void ReplacePiece(Position pos, Piece piece)
+        /// <summary>
+        /// Podmienia figurę
+        /// </summary>
+        /// <param name="pos">pozycja figury</param>
+        /// <param name="piece">nowa figura</param>
+        public void ReplacePiece(Position pos, Piece newPiece)
         {
             // dostosowanie ruchu do obrócenia szachownicy
             if (Rotation == BoardRotation.BlackBottom)
@@ -290,7 +357,7 @@ namespace Chess
             // i utworzenie oraz dodanie nowej
             pieceImages[pos.Y, pos.X] = new Image
             {
-                Source = pieceBitmaps[piece.ToString()],
+                Source = pieceBitmaps[newPiece.ToString()],
                 Width = TileSize,
                 Height = TileSize
             };
@@ -300,6 +367,10 @@ namespace Chess
             PiecesUpdateHandler?.Invoke();
         }
 
+        /// <summary>
+        /// Usuwa figurę
+        /// </summary>
+        /// <param name="pos">pozycja figury</param>
         public void RemovePiece(Position pos)
         {
             // dostosowanie ruchu do obrócenia szachownicy
@@ -315,6 +386,10 @@ namespace Chess
             PiecesUpdateHandler?.Invoke();
         }
 
+        /// <summary>
+        /// Inicjalizuje ułożenie figur
+        /// </summary>
+        /// <param name="board">figury do wczytania</param>
         public void InitPieces(Piece[,] board)
         {
             drawCanvas.Visibility = Visibility.Hidden;
@@ -358,6 +433,9 @@ namespace Chess
             PiecesUpdateHandler?.Invoke();
         }
 
+        /// <summary>
+        /// Obraca szachownicę
+        /// </summary>
         public void Rotate()
         {
             Rotation = Rotation == BoardRotation.WhiteBottom ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
@@ -376,6 +454,10 @@ namespace Chess
                 selectedHighlight.Show(drawCanvas);
         }
 
+        /// <summary>
+        /// Zmienia wielkość szachownicy
+        /// </summary>
+        /// <param name="newSize">nowa wielkość</param>
         public void Resize(int newSize)
         {
             drawCanvas.Visibility = Visibility.Hidden;

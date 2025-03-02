@@ -10,12 +10,14 @@
         Title="WPF Chess" Height="800" Width="800">
     <Grid x:Name="g_MainGrid">
         
+        <!-- Definicja wierszy -->
         <Grid.RowDefinitions>
             <RowDefinition Height="80" />
             <RowDefinition Height="*" />
             <RowDefinition Height="80" />
         </Grid.RowDefinitions>
-
+    
+        <!-- Lobby (ustawienia gry) -->
         <StackPanel 
             MinWidth="360"
             x:Name="sp_GameSettings" Grid.Row="1" 
@@ -71,9 +73,12 @@
                                     Click="btn_PastePosition_Click"/>
                             <Button x:Name="btn_CopyPosition" Content="Kopiuj" Margin="3" Padding="2"
                                     Click="btn_CopyPosition_Click"/>
+
+                            <Button x:Name="btn_ResetPosition" Content="Resetuj" Margin="3" Padding="2"
+                                    Click="btn_ResetPosition_Click"/>
                         </StackPanel>
                         
-                        <TextBox x:Name="tb_StartPosition" Width="300"/>
+                        <TextBox x:Name="tb_StartPosition" Width="360"/>
                     </StackPanel>
                     
                 </StackPanel>
@@ -85,6 +90,7 @@
         </StackPanel>
 
         
+        <!-- Panel górny -->
         <DockPanel Margin="10" x:Name="p_TopPlayerPanel" 
             Grid.Row="0" Visibility="Collapsed"
             VerticalAlignment="Center">
@@ -96,11 +102,13 @@
             </StackPanel>
         </DockPanel>
         
+        <!-- Kanwa szachownicy -->
         <Canvas Grid.Row="1" SizeChanged="cnv_MainCanvasWrapper_SizeChanged"
                 Visibility="Collapsed" x:Name="cnv_MainCanvasWrapper">
             <Canvas x:Name="cnv_MainCanvas"/>
         </Canvas>
 
+        <!-- Panel dolny -->
         <DockPanel Margin="10" x:Name="p_BottomPlayerPanel"
             Grid.Row="2" Visibility="Collapsed"
             VerticalAlignment="Center">
