@@ -7,8 +7,9 @@
         mc:Ignorable="d"
         FontSize="16"
         FontFamily="Calibri"
-        Title="MainWindow" Height="800" Width="800">
+        Title="WPF Chess" Height="800" Width="800">
     <Grid x:Name="g_MainGrid">
+        
         <Grid.RowDefinitions>
             <RowDefinition Height="80" />
             <RowDefinition Height="*" />

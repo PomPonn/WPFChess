@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 
 namespace Chess
 {
     public partial class MainWindow : Window
     {
+        private static readonly SolidColorBrush currentPlayerColor = new(Colors.LightGray);
+
         private const string defaultMode = "local";
         private const string defaultFENPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         private const string playerLabel = "Gracz";
@@ -13,13 +16,14 @@ namespace Chess
         private const double boardHorizontalMarginPercent = 0.5;
         private const int defaultBotDifficulty = 4;
         private const int minBoardSize = 120;
-        private const int maxBoardSize = 640;
+        private const int maxBoardSize = 2000;
 
         private readonly ChessBoard mainBoard;
         private readonly GameManager mainGameManager;
 
         private DockPanel WhitePlayerPanel;
         private DockPanel BlackPlayerPanel;
+        private bool isWhiteToMove;
 
 
         public MainWindow()
@@ -44,12 +48,26 @@ namespace Chess
             return val - (val % div);
         }
 
-        private void OnBoardUpdate()
+        private void UpdatePlayerPanels()
         {
+            if (isWhiteToMove == mainGameManager.IsWhiteToMove)
+            {
+                (WhitePlayerPanel.Children[0] as Label).Background = mainGameManager.IsWhiteToMove ? currentPlayerColor : null;
+                (BlackPlayerPanel.Children[0] as Label).Background = !mainGameManager.IsWhiteToMove ? currentPlayerColor : null;
+
+                isWhiteToMove = !isWhiteToMove;
+            }
+
+            // uaktualnienie podglądów róznicy materiału
             static string materialStr(int val) => val > 0 ? "+" + val.ToString() : "";
 
             (WhitePlayerPanel.Children[1] as Label).Content = materialStr(mainGameManager.MaterialDifference);
             (BlackPlayerPanel.Children[1] as Label).Content = materialStr(-mainGameManager.MaterialDifference);
+        }
+
+        private void OnBoardUpdate()
+        {
+            UpdatePlayerPanels();
         }
 
         private void EndGame()
@@ -109,7 +127,7 @@ namespace Chess
         {
             string selectedMode = (string)(cb_GameMode.SelectedValue as ComboBoxItem).Tag;
             string playerSide = (string)(cb_PlayerSide.SelectedValue as ComboBoxItem).Tag;
-            
+
             mainBoard.Rotation = playerSide == "white" ? BoardRotation.WhiteBottom : BoardRotation.BlackBottom;
 
             try
@@ -136,6 +154,9 @@ namespace Chess
 
                 mainGameManager.StartGameAgainstBot(difficulty, playerSide == "white");
             }
+
+            isWhiteToMove = mainGameManager.IsWhiteToMove;
+            UpdatePlayerPanels();
 
             cnv_MainCanvasWrapper.Visibility = Visibility.Visible;
         }
@@ -246,6 +267,8 @@ namespace Chess
                 string temp = (string)(v1 as Label).Content;
                 (v1 as Label).Content = (v2 as Label).Content;
                 (v2 as Label).Content = temp;
+
+                ((v1 as Label).Background, (v2 as Label).Background) = ((v2 as Label).Background, (v1 as Label).Background);
             }
 
             mainBoard.Rotate();

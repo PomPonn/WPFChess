@@ -42,13 +42,13 @@ namespace Chess
         private bool CanClientMove
             => gameType == GameType.Local || gameContext.IsWhiteToMove == isClientWhiteSide;
 
+        public onGameOver GameOverHandler { get; set; }
         public ChessBoard Board { get; set; }
         public Piece[,] Pieces = null;
         public bool GameRunning { get; private set; }
         public int MaterialDifference => whiteMaterial - blackMaterial;
         public string CurrentFEN => FEN.Build(Pieces, gameContext);
-
-        public onGameOver GameOverHandler { get; set; }
+        public bool IsWhiteToMove => gameContext.IsWhiteToMove;
 
 
         public GameManager(ChessBoard board, Piece[,] pieces = null)
