@@ -10,12 +10,15 @@
         Title="MainWindow" Height="800" Width="800">
     <Grid x:Name="g_MainGrid">
         <Grid.RowDefinitions>
+            <RowDefinition Height="80" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="80" />
         </Grid.RowDefinitions>
 
-        <StackPanel x:Name="sp_GameSettings" Grid.Row="1" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel 
+            MinWidth="360"
+            x:Name="sp_GameSettings" Grid.Row="1" 
+            HorizontalAlignment="Center" VerticalAlignment="Center">
 
             <Label FontWeight="Bold" FontSize="24" Margin="10"
                    HorizontalAlignment="Center" Content="Nowa Gra"/>
@@ -81,9 +84,28 @@
         </StackPanel>
 
         
+        <DockPanel Margin="10" x:Name="p_TopPlayerPanel" 
+            Grid.Row="0" Visibility="Collapsed"
+            VerticalAlignment="Center">
+            <Label FontSize="24" Margin="5"/>
+            <Label Margin="5"/>
+            <StackPanel HorizontalAlignment="Right" Orientation="Horizontal">
+                <Button Padding="8" Margin="5" Content="Kopiuj pozycję" Click="SavePositionButton_Click"/>
+                <Button Padding="8" Margin="5" Content="Obróć" Click="RotateButton_Click"/>
+            </StackPanel>
+        </DockPanel>
+        
         <Canvas Grid.Row="1" SizeChanged="cnv_MainCanvasWrapper_SizeChanged"
                 Visibility="Collapsed" x:Name="cnv_MainCanvasWrapper">
             <Canvas x:Name="cnv_MainCanvas"/>
         </Canvas>
+
+        <DockPanel Margin="10" x:Name="p_BottomPlayerPanel"
+            Grid.Row="2" Visibility="Collapsed"
+            VerticalAlignment="Center">
+            <Label FontSize="24" Margin="5"/>
+            <Label Margin="5"/>
+            <Button Content="Zakończ grę" HorizontalAlignment="Right" Padding="8" Margin="5" Click="EndGameButton_Click"/>
+        </DockPanel>
     </Grid>
 </Window>

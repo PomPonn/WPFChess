@@ -34,6 +34,8 @@ namespace Chess
         static readonly BitmapImage boardBitmap = new(new Uri("images/board.png", UriKind.Relative));
         static readonly SolidColorBrush highlightColor = new(Colors.LightCoral);
 
+        public delegate void OnUpdate();
+
         // przechowuje graficzną reprezentacje figur na szachownicy
         readonly Image[,] pieceImages = new Image[8, 8];
         // okno, na którym rejestrowane są wydarzenia
@@ -56,6 +58,7 @@ namespace Chess
         // menedżer gry zarządzający tą szachownicą
         public GameManager GameManager { get; set; }
 
+        public OnUpdate PiecesUpdateHandler { get; set; }
 
         public ChessBoard(Window contextWindow, Canvas drawCanvas, int boardSize)
         {
@@ -250,16 +253,13 @@ namespace Chess
             Canvas.SetTop(selectedPiece, p.Y - (TileSize / 2));
         }
 
-        public bool MovePiece(Move move)
+        public void MovePiece(Move move)
         {
             // dostosowanie ruchu do obrócenia szachownicy
             if (Rotation == BoardRotation.BlackBottom)
                 move.Rotate();
 
             (Position from, Position to) = move;
-
-            if (pieceImages[from.Y, from.X] == null)
-                return false;
 
             // przeniesienie figury i usunięcie zbitej (jeśli istnieje)
             drawCanvas.Children.Remove(pieceImages[to.Y, to.X]);
@@ -272,7 +272,7 @@ namespace Chess
 
             SetImagePosition(pieceImages[to.Y, to.X], to);
 
-            return true;
+            PiecesUpdateHandler?.Invoke();
         }
 
         public void ReplacePiece(Position pos, Piece piece)
@@ -296,6 +296,8 @@ namespace Chess
             };
             SetImagePosition(pieceImages[pos.Y, pos.X], pos);
             drawCanvas.Children.Add(pieceImages[pos.Y, pos.X]);
+
+            PiecesUpdateHandler?.Invoke();
         }
 
         public void RemovePiece(Position pos)
@@ -309,11 +311,16 @@ namespace Chess
             // usunięcie figury
             drawCanvas.Children.Remove(pieceImages[pos.Y, pos.X]);
             pieceImages[pos.Y, pos.X] = null;
+
+            PiecesUpdateHandler?.Invoke();
         }
 
         public void InitPieces(Piece[,] board)
         {
             drawCanvas.Visibility = Visibility.Hidden;
+
+            moveHighlight.Hide(drawCanvas);
+            selectedHighlight.Hide(drawCanvas);
             drawCanvas.Children.Clear();
 
             drawCanvas.Children.Add(boardImage);
@@ -348,6 +355,25 @@ namespace Chess
             }
 
             drawCanvas.Visibility = Visibility.Visible;
+            PiecesUpdateHandler?.Invoke();
+        }
+
+        public void Rotate()
+        {
+            Rotation = Rotation == BoardRotation.WhiteBottom ? BoardRotation.BlackBottom : BoardRotation.WhiteBottom;
+
+            bool showMoveHl = moveHighlight.IsVisible;
+            bool showSelectionHl = selectedHighlight.IsVisible;
+
+            InitPieces(GameManager.Pieces);
+
+            moveHighlight.Rotate();
+            if (showMoveHl)
+                moveHighlight.Show(drawCanvas);
+
+            selectedHighlight.Rotate();
+            if (showSelectionHl)
+                selectedHighlight.Show(drawCanvas);
         }
 
         public void Resize(int newSize)

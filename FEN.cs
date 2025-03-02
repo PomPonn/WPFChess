@@ -28,7 +28,7 @@ namespace Chess
                 CastlingAbility ability = (CastlingAbility)Enum.Parse(typeof(CastlingAbility), name);
 
                 if (HasFlag(ability))
-                    res += name;
+                    res = name + res;
             }
 
             return String.IsNullOrEmpty(res) ? "-" : res;

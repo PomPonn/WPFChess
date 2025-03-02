@@ -9,7 +9,8 @@ namespace Chess
     {
         WhiteWin,
         BlackWin,
-        Draw
+        Draw,
+        Interrupted
     }
 
     public enum GameType
@@ -25,6 +26,7 @@ namespace Chess
         static readonly SoundPlayer checkSound = new("audio/piece_check.wav");
         static readonly int MIN_MATERIAL = 5;
 
+        public delegate void onGameOver(GameResult result, string message = "");
 
         FEN.Context gameContext;
         Position? lastOddBlackMovePos;
@@ -32,17 +34,21 @@ namespace Chess
         GameType gameType;
 
         int repetitionCounter;
+        int engineDepth = 12;
         int whiteMaterial = 0;
         int blackMaterial = 0;
-        int engineDepth = 12;
 
-        bool gameRunning;
         bool isClientWhiteSide = true;
         private bool CanClientMove
             => gameType == GameType.Local || gameContext.IsWhiteToMove == isClientWhiteSide;
 
         public ChessBoard Board { get; set; }
         public Piece[,] Pieces = null;
+        public bool GameRunning { get; private set; }
+        public int MaterialDifference => whiteMaterial - blackMaterial;
+        public string CurrentFEN => FEN.Build(Pieces, gameContext);
+
+        public onGameOver GameOverHandler { get; set; }
 
 
         public GameManager(ChessBoard board, Piece[,] pieces = null)
@@ -67,26 +73,11 @@ namespace Chess
             }
         }
 
-        private void GameOver(GameResult isWhite, string message = "")
-        {
-            Board.Interactable = false;
-            gameRunning = false;
-
-            string text;
-
-            if (isWhite == GameResult.Draw)
-                text = "Draw! " + message;
-            else
-                text = "Checkmate! " + (isWhite == GameResult.WhiteWin ? "White" : "Black") + " wins! " + message;
-
-            MessageBox.Show(text, "GameManager Over", MessageBoxButton.OK, MessageBoxImage.Information);
-        }
-
         private void Start()
         {
             if (Pieces == null)
                 throw new InvalidOperationException("Pieces not loaded.");
-            if (gameRunning)
+            if (GameRunning)
                 throw new InvalidOperationException("Game is already running.");
 
             lastOddBlackMovePos = null;
@@ -94,8 +85,23 @@ namespace Chess
 
             repetitionCounter = 0;
 
-            gameRunning = true;
+            GameRunning = true;
             Board.Interactable = true;
+        }
+
+        private void GameOver(GameResult result, string message = null)
+        {
+            if (!GameRunning) return;
+
+            Board.Interactable = false;
+            GameRunning = false;
+
+            GameOverHandler(result, message);
+        }
+
+        public void ForceGameOver(string message = null)
+        {
+            GameOver(GameResult.Interrupted, message);
         }
 
         public void StartLocalGame()
@@ -281,14 +287,6 @@ namespace Chess
 
             Piece piece = Pieces[start.Y, start.X];
 
-            // move piece on the board
-            if (!Board.MovePiece(move))
-            {
-                // board and gameController are desynced
-                // sync it back?
-                throw new Exception("Piece move failed.");
-            }
-
             UpdateGameState(start, end);
 
             // en passant capture
@@ -330,6 +328,11 @@ namespace Chess
                 Board.ReplacePiece(end, Pieces[end.Y, end.X]);
             }
 
+            CountMaterial();
+
+            // move piece on the board
+            Board.MovePiece(move);
+
             // update repetition counter
             HandleRepetitionCounter(move, piece);
 
@@ -347,8 +350,6 @@ namespace Chess
 
         private void CheckForGameEnd(Piece movedPiece)
         {
-            CountMaterial();
-
             // win by mate
             if (MoveValidator.KingMated(Pieces, gameContext, !movedPiece.IsWhite))
             {
@@ -357,22 +358,22 @@ namespace Chess
             // insufficient material
             else if (!CheckMaterial(movedPiece.IsWhite) && !CheckMaterial(!movedPiece.IsWhite))
             {
-                GameOver(GameResult.Draw, "Insufficient Material");
+                GameOver(GameResult.Draw, "(Niewystarczający materiał)");
             }
             // 3-fold repetition draw
             else if (repetitionCounter == 3)
             {
-                GameOver(GameResult.Draw, "By repetition");
+                GameOver(GameResult.Draw, "(Powtórzenie pozycji)");
             }
             // 50 moves draw
             else if (gameContext.HalfMoveClock == 50)
             {
-                GameOver(GameResult.Draw, "50 passive moves");
+                GameOver(GameResult.Draw, "(50 pasywnych ruchów)");
             }
             // Stalemate draw
             else if (MoveValidator.Stalemate(Pieces, gameContext, !movedPiece.IsWhite))
             {
-                GameOver(GameResult.Draw, "Stalemate");
+                GameOver(GameResult.Draw, "(Pat)");
             }
 
         }

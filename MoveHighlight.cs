@@ -30,6 +30,14 @@ namespace Chess
             IsVisible = true;
         }
 
+        public void Rotate()
+        {
+            foreach (var sqr in sqrs)
+            {
+                sqr.Rotate();
+            }
+        }
+
         public void Resize(int newSize)
         {
             sqrs[0].Resize(newSize);
@@ -58,9 +66,9 @@ namespace Chess
         static readonly float highlightOpacity = 0.5f;
 
         private readonly Rectangle rect;
-        private Position currentPos;
         private int tileSize;
 
+        public Position CurrentPos { get; private set; }
         public bool IsVisible { get; private set; }
 
 
@@ -96,6 +104,11 @@ namespace Chess
             IsVisible = false;
         }
 
+        public void Rotate()
+        {
+            SetPosition(Position.Rotate(CurrentPos));
+        }
+
         public void Resize(int newSize)
         {
             tileSize = newSize;
@@ -103,12 +116,12 @@ namespace Chess
             rect.Width = newSize;
             rect.Height = newSize;
 
-            SetPosition(currentPos);
+            SetPosition(CurrentPos);
         }
 
         public void SetPosition(Position pos)
         {
-            currentPos = pos;
+            CurrentPos = pos;
             Canvas.SetLeft(rect, pos.X * tileSize);
             Canvas.SetTop(rect, pos.Y * tileSize);
         }
